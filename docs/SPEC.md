@@ -15,7 +15,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 
 - Top 14, Pro D2
 - Champions Cup, Challenge Cup
-- Six Nations, tests internationaux (novembre / été), Rugby Championship, Coupe du monde
+- Six Nations, Nations Championship (tests de juillet et novembre depuis 2026), autres tests internationaux, Rugby Championship, Coupe du monde
 
 ### Exclu de la V1
 

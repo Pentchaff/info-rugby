@@ -87,35 +87,25 @@ export function parseEvent(ev: any): RawEvent | null {
   };
 }
 
-const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+export const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
 
-/** Matchs d'une ligue entre deux dates. Essaie une plage unique, puis des tranches mensuelles. */
-export async function fetchEvents(leagueId: string, from: Date, to: Date): Promise<{ events: RawEvent[]; leagueName: string | null }> {
-  const get = async (a: Date, b: Date) => {
-    const j = await fetchJson(`${SITE}/${leagueId}/scoreboard?dates=${ymd(a)}-${ymd(b)}&limit=1000`);
-    return { events: (j?.events ?? []) as any[], name: (j?.leagues?.[0]?.name as string) ?? null };
-  };
-  let { events, name } = await get(from, to);
-  const span = (to.getTime() - from.getTime()) / 86400000;
-  if (events.length === 0 && span > 40) {
-    const chunks: [Date, Date][] = [];
-    for (let a = new Date(from); a < to; a = new Date(a.getTime() + 30 * 86400000)) {
-      chunks.push([a, new Date(Math.min(to.getTime(), a.getTime() + 30 * 86400000 - 86400000))]);
-    }
-    const results = await pool(chunks, 3, ([a, b]) => get(a, b).catch(() => ({ events: [], name: null })));
-    events = results.flatMap((r) => r.events);
-    name = name ?? results.find((r) => r.name)?.name ?? null;
-  }
-  const seen = new Set<string>();
-  const out: RawEvent[] = [];
-  for (const e of events) {
-    const p = parseEvent(e);
-    if (p && !seen.has(p.id)) {
-      seen.add(p.id);
-      out.push(p);
-    }
-  }
-  return { events: out, leagueName: name };
+/** Matchs d'une ligue pour un jour donné (ESPN n'accepte pas les plages de dates). */
+export async function fetchDay(leagueId: string, day: string): Promise<{ events: RawEvent[]; leagueName: string | null }> {
+  const j = await fetchJson(`${SITE}/${leagueId}/scoreboard?dates=${day}`);
+  const events = ((j?.events ?? []) as any[]).map(parseEvent).filter((e): e is RawEvent => !!e);
+  return { events, leagueName: (j?.leagues?.[0]?.name as string) ?? null };
+}
+
+/** Scoreboard par défaut : matchs de la semaine en cours + calendrier (jours avec matchs). */
+export async function fetchDefault(leagueId: string): Promise<{ events: RawEvent[]; leagueName: string | null; calendar: string[] }> {
+  const j = await fetchJson(`${SITE}/${leagueId}/scoreboard`);
+  const events = ((j?.events ?? []) as any[]).map(parseEvent).filter((e): e is RawEvent => !!e);
+  const cal: unknown[] = j?.leagues?.[0]?.calendar ?? [];
+  const calendar = cal
+    .map((c: any) => (typeof c === 'string' ? c : c?.startDate ?? c?.value ?? null))
+    .filter((c): c is string => typeof c === 'string')
+    .map((c) => c.slice(0, 10).replace(/-/g, ''));
+  return { events, leagueName: (j?.leagues?.[0]?.name as string) ?? null, calendar };
 }
 
 /** Liste des ligues ESPN (id + nom), pour la découverte automatique. */
@@ -125,7 +115,8 @@ export async function fetchLeagueCatalog(): Promise<{ id: string; name: string }
   const leagues = await pool(refs, 8, async (r) => {
     try {
       const l = await fetchJson(r);
-      return { id: String(l.id), name: String(l.name ?? l.displayName ?? '') };
+      const siteId = [l.slug, l.midsizeName, l.id].map(String).find((x) => /^\d+$/.test(x)) ?? String(l.id);
+      return { id: siteId, name: String(l.name ?? l.displayName ?? '') };
     } catch {
       return null;
     }
@@ -268,8 +259,24 @@ function pick(stats: Record<string, number>, ...names: string[]): number | null 
   return null;
 }
 
-export async function fetchStandings(leagueId: string): Promise<{ groups: StandingGroup[]; teams: RawTeam[] }> {
-  const j = await fetchJson(`${STANDINGS}/${leagueId}/standings`);
+/**
+ * Classement de la saison en cours. ESPN renvoie par défaut une vieille saison :
+ * on essaie l'année de fin de saison (2027 pour 2026-27), puis l'année de début.
+ */
+export async function fetchStandings(leagueId: string, seasonYears: number[]): Promise<{ groups: StandingGroup[]; teams: RawTeam[] }> {
+  for (const y of seasonYears) {
+    try {
+      const r = await fetchStandingsFor(`${STANDINGS}/${leagueId}/standings?season=${y}`);
+      if (r.groups.some((g) => g.rows.some((row) => (row.played ?? 0) > 0))) return r;
+    } catch {
+      /* saison suivante */
+    }
+  }
+  return { groups: [], teams: [] };
+}
+
+async function fetchStandingsFor(u: string): Promise<{ groups: StandingGroup[]; teams: RawTeam[] }> {
+  const j = await fetchJson(u);
   const blocks: { name: string | null; entries: any[] }[] = [];
   if (j?.children?.length) {
     for (const c of j.children) blocks.push({ name: c?.name ?? c?.abbreviation ?? null, entries: c?.standings?.entries ?? [] });

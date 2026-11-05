@@ -162,42 +162,97 @@ function upsertTeam(t: espn.RawTeam, comp: CompetitionConfig) {
   };
 }
 
-async function collectEvents(leagues: Map<string, string>, from: Date, to: Date) {
+function applyEvents(c: CompetitionConfig, events: espn.RawEvent[]) {
+  for (const e of events) {
+    upsertTeam(e.home.team, c);
+    upsertTeam(e.away.team, c);
+    const prev = byId.get(e.id);
+    const m: Match = {
+      id: e.id,
+      competition: c.slug,
+      date: e.date,
+      status: e.status,
+      home: { teamId: e.home.team.id, score: e.home.score },
+      away: { teamId: e.away.team.id, score: e.away.score },
+      venue: e.venue ?? prev?.venue ?? null,
+      round: e.round ?? prev?.round ?? null,
+      lineups: prev?.lineups ?? null,
+      scorers: prev?.scorers ?? [],
+      summaryFetchedAt: prev?.summaryFetchedAt ?? null,
+      resume: prev?.resume ?? null,
+      resumeLastCheck: prev?.resumeLastCheck ?? null,
+      resumeChecks: prev?.resumeChecks ?? 0,
+    };
+    // Score modifié après coup : on relit la feuille de match.
+    if (prev && (prev.home.score !== m.home.score || prev.away.score !== m.away.score)) m.summaryFetchedAt = null;
+    byId.set(m.id, m);
+  }
+}
+
+const dayList = (from: Date, to: Date, filter?: (d: Date) => boolean) => {
+  const out: string[] = [];
+  for (let t = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()); t <= to.getTime(); t += D) {
+    const d = new Date(t);
+    if (!filter || filter(d)) out.push(espn.ymd(d));
+  }
+  return out;
+};
+
+/**
+ * ESPN ne renvoie qu'un jour par requête. Stratégie :
+ * - jours passés de la saison : seulement ceux du calendrier ESPN, une seule fois (mémorisés dans meta.doneDays) ;
+ * - de J-2 à J+60 : à chaque collecte complète ;
+ * - au-delà : vendredis, samedis et dimanches, une fois par jour.
+ * En mode léger : J-1 à J+1.
+ */
+async function collectEvents(leagues: Map<string, string>, mode: 'full' | 'light') {
+  const today = new Date(now.getTime());
+  const near = dayList(new Date(today.getTime() - (mode === 'full' ? 2 : 1) * D), new Date(today.getTime() + (mode === 'full' ? 60 : 1) * D));
+  const farDue = mode === 'full' && (!meta.lastFarAt || now.getTime() - new Date(meta.lastFarAt).getTime() > 20 * H);
+  const far = farDue ? dayList(new Date(today.getTime() + 61 * D), season.end, (d) => [0, 5, 6].includes(d.getUTCDay())) : [];
+  const seasonStart = espn.ymd(season.start);
+  const limit = espn.ymd(new Date(today.getTime() - 3 * D));
+  meta.doneDays ??= {};
+
   for (const c of competitions) {
     const id = leagues.get(c.slug);
     if (!id) continue;
+    const done = new Set(meta.doneDays[c.slug] ?? []);
+    let days = [...near, ...far];
+    let leagueName: string | null = meta.leagues[c.slug]?.espnName ?? null;
+    let n = 0;
     try {
-      const { events, leagueName } = await espn.fetchEvents(id, from, to);
-      for (const e of events) {
-        upsertTeam(e.home.team, c);
-        upsertTeam(e.away.team, c);
-        const prev = byId.get(e.id);
-        const m: Match = {
-          id: e.id,
-          competition: c.slug,
-          date: e.date,
-          status: e.status,
-          home: { teamId: e.home.team.id, score: e.home.score },
-          away: { teamId: e.away.team.id, score: e.away.score },
-          venue: e.venue ?? prev?.venue ?? null,
-          round: e.round ?? prev?.round ?? null,
-          lineups: prev?.lineups ?? null,
-          scorers: prev?.scorers ?? [],
-          summaryFetchedAt: prev?.summaryFetchedAt ?? null,
-          resume: prev?.resume ?? null,
-          resumeLastCheck: prev?.resumeLastCheck ?? null,
-          resumeChecks: prev?.resumeChecks ?? 0,
-        };
-        // Score modifié après coup : on relit la feuille de match.
-        if (prev && (prev.home.score !== m.home.score || prev.away.score !== m.away.score)) m.summaryFetchedAt = null;
-        byId.set(m.id, m);
+      if (mode === 'full') {
+        const def = await espn.fetchDefault(id);
+        leagueName = def.leagueName ?? leagueName;
+        applyEvents(c, def.events);
+        n += def.events.length;
+        const past = def.calendar.length
+          ? def.calendar.filter((d) => d >= seasonStart && d <= limit)
+          : dayList(season.start, new Date(today.getTime() - 3 * D));
+        days = [...past.filter((d) => !done.has(d)), ...days];
       }
-      meta.leagues[c.slug] = { espnId: id, espnName: leagueName ?? meta.leagues[c.slug]?.espnName ?? null, matches: 0 };
-      log(`${c.slug} (${id} ${leagueName ?? '?'}) : ${events.length} matchs`);
     } catch (e) {
-      fail(`matchs ${c.slug} (${id})`, e);
+      fail(`calendrier ${c.slug} (${id})`, e);
     }
+    days = [...new Set(days)];
+    let errs = 0;
+    await pool(days, 6, async (day) => {
+      try {
+        const r = await espn.fetchDay(id, day);
+        leagueName = r.leagueName ?? leagueName;
+        applyEvents(c, r.events);
+        n += r.events.length;
+        if (day <= limit && r.events.every((e) => e.status !== 'scheduled' && e.status !== 'live')) done.add(day);
+      } catch (e) {
+        if (errs++ < 3) fail(`matchs ${c.slug} ${day}`, e);
+      }
+    });
+    meta.doneDays[c.slug] = [...done].sort();
+    meta.leagues[c.slug] = { espnId: id, espnName: leagueName, matches: 0 };
+    log(`${c.slug} (${id} ${leagueName ?? '?'}) : ${days.length} jours lus, ${n} matchs`);
   }
+  if (farDue) meta.lastFarAt = now.toISOString();
 }
 
 // ---------- Feuilles de match et joueurs ----------
@@ -338,7 +393,8 @@ async function collectStandings(leagues: Map<string, string>) {
     const id = leagues.get(c.slug);
     if (!id) continue;
     try {
-      const { groups, teams: ts } = await espn.fetchStandings(id);
+      const y = season.start.getUTCFullYear();
+      const { groups, teams: ts } = await espn.fetchStandings(id, c.national ? [y + 1, y] : [y + 1, y]);
       for (const t of ts) if (!teams[t.id]) upsertTeam(t, c);
       if (groups.length) standings[c.slug] = groups;
     } catch (e) {
@@ -419,10 +475,10 @@ async function main() {
   const leagues = await resolveLeagues();
 
   if (mode === 'full') {
-    await collectEvents(leagues, season.start, season.end);
+    await collectEvents(leagues, 'full');
     await collectStandings(leagues);
   } else {
-    await collectEvents(leagues, new Date(now.getTime() - 2 * D), new Date(now.getTime() + 10 * D));
+    await collectEvents(leagues, 'light');
   }
   await collectSummaries(leagues);
   if (mode === 'full') {

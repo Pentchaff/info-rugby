@@ -110,6 +110,8 @@ export interface Meta {
   youtubeChannels: Record<string, string>; // handle -> channelId
   errors: string[];
   lastRun: { mode: string; at: string; durationSec: number } | null;
+  doneDays?: Record<string, string[]>; // jours passés déjà lus, par compétition
+  lastFarAt?: string;
 }
 
 export interface CompetitionConfig {
