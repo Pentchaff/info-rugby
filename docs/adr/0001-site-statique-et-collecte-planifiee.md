@@ -1,0 +1,3 @@
+# Site statique sur GitHub Pages, données collectées par une tâche GitHub Actions planifiée
+
+Le site est hébergé gratuitement sur GitHub Pages, sans serveur. Toutes les données (matchs, scores, joueurs, diffuseurs, résumés) sont récupérées par une tâche GitHub Actions planifiée, qui garde les clés API (Google/Gemini) dans les secrets GitHub et publie des fichiers de données statiques lus par le site. Ce choix garantit 0 €/mois et qu'aucune clé n'est exposée côté navigateur. En contrepartie : pas de temps réel (les tâches planifiées de GitHub tournent avec 5 à 30 min de retard), pas de comptes utilisateurs (réglages stockés sur chaque appareil), et un dépôt public obligatoire sur un compte GitHub gratuit.
