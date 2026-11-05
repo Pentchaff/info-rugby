@@ -13,7 +13,7 @@ on:
       mode:
         description: 'Mode de collecte'
         type: choice
-        options: [auto, full, light]
+        options: [auto, full, light, probe]
         default: full
 
 permissions:
@@ -48,7 +48,7 @@ jobs:
 
       - name: Enregistrement des données
         id: commit
-        if: steps.collect.outputs.ran == 'true'
+        if: steps.collect.outputs.ran == 'true' || github.event.inputs.mode == 'probe'
         run: |
           git config user.name "info-rugby-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

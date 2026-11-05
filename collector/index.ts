@@ -403,6 +403,11 @@ async function collectResumes() {
 // ---------- Programme principal ----------
 
 async function main() {
+  if (process.argv[2] === 'probe') {
+    const { probe } = await import('./probe.ts');
+    await probe(DATA);
+    return;
+  }
   const mode = decideMode(process.argv[2]);
   log(`mode : ${mode}`);
   const out = process.env.GITHUB_OUTPUT;
