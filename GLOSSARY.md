@@ -36,6 +36,10 @@ _Avoid_: Diffuseur par défaut
 Un Diffuseur saisi à la main pour un Match, qui l'emporte sur tout le reste.
 _Avoid_: Override
 
+**Clé personnelle**:
+La clé Google qu'une personne saisit sur son appareil pour permettre à l'app de chercher les Diffuseurs ; facultative.
+_Avoid_: Clé API, token
+
 ### Vidéos
 
 **Résumé**:

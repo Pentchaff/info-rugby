@@ -42,7 +42,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
   1. il appelle les sources externes ;
   2. il écrit des fichiers de données JSON versionnés dans le dépôt ;
   3. il rebuild le site et le déploie sur Pages.
-- **Secrets** : la clé Google (Gemini) est dans les secrets GitHub Actions. Aucune clé ne doit apparaître dans le site publié.
+- **Aucun secret côté GitHub** : la collecte n'utilise aucune clé. La recherche des Diffuseurs se fait depuis l'appareil avec la **Clé personnelle** de chaque personne (ADR 0003).
 - **Fréquence de collecte** :
   - toutes les 15 min pendant les créneaux de match (du coup d'envoi jusqu'à environ 2 h 30 après) ;
   - quelques fois par jour en dehors de ces créneaux.
@@ -57,7 +57,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 | Donnée | Source | Notes |
 | --- | --- | --- |
 | Matchs, horaires, Scores finaux, Feuilles de match, Classements, effectifs, logos | API non officielle ESPN (`site.api.espn.com/apis/site/v2/sports/rugby/{leagueId}/…`), sans clé (ADR 0002) | Accès derrière un **adaptateur** interchangeable. Repli : API-Sports Rugby payant. |
-| Diffuseur d'un Match | Gemini avec Google Search grounding, clé Google | Voir §6 |
+| Diffuseur d'un Match | Gemini avec Google Search grounding, appelé depuis le navigateur avec la Clé personnelle | Voir §6 |
 | Résumés | Flux RSS YouTube des **Chaînes officielles** et oEmbed YouTube | Voir §7. Sans clé, l'API YouTube Data n'est pas utilisée. |
 | Parcours d'un Joueur | Wikidata (clubs et sélections avec dates de début et de fin) | Sans clé |
 
@@ -73,10 +73,11 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 Ordre de résolution du **Diffuseur** d'un Match, du plus prioritaire au moins prioritaire :
 
 1. **Correction de diffusion** : un fichier du dépôt (ex. `data/corrections-diffusion.json`), modifiable à la main depuis l'app GitHub. Elle l'emporte toujours.
-2. **Gemini** : environ 7 jours avant le Match (puis rafraîchi à J-1), la tâche demande à Gemini le ou les Diffuseurs en France :
-   - avec une sortie structurée et les URL sources ;
+2. **Gemini**, seulement si une Clé personnelle est enregistrée sur l'appareil. À l'ouverture de l'accueil, l'app demande à Gemini le ou les Diffuseurs en France pour les Matchs des 7 prochains jours :
+   - les Matchs qui ont une Correction de diffusion ou une réponse de moins de 24 h en cache local sont sautés ;
+   - sortie structurée avec les URL sources ;
    - la réponse est validée contre une liste connue de Diffuseurs (Canal+, France 2, France 3, France TV, TF1, L'Équipe TV, beIN Sports, Rugby+…) ;
-   - le résultat est stocké ; on ne réinterroge pas Gemini à chaque collecte.
+   - la réponse est gardée en cache sur l'appareil (localStorage), sans partage entre appareils.
 3. **Règle de diffusion** : le Diffuseur habituel de la Compétition, défini dans un fichier de configuration du dépôt.
 
 L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou habituel). Elle respecte les obligations d'affichage liées au grounding Google (liens sources).
@@ -127,6 +128,14 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
   - avancées, affichées seulement si la source les fournit : plaquages, mètres parcourus, franchissements, turnovers.
 - Liste de ses Matchs de la saison : titulaire ou remplaçant, essais.
 
+### Réglages
+
+- Saisir, tester et supprimer la Clé personnelle (stockée uniquement sur l'appareil).
+- Mini-guide « Comment obtenir une clé gratuite » :
+  - création de la clé dans Google AI Studio ;
+  - recommandation de la restreindre au domaine `pentchaff.github.io` et à l'API Gemini (Generative Language API).
+- Sans clé, l'app reste complète. Seuls les Diffuseurs sont moins précis (Règle de diffusion).
+
 ### Classements
 
 - Un classement par Compétition (avec les poules quand il y en a).
@@ -146,10 +155,10 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 
 - [ ] Le site est publié sur GitHub Pages, installable sur l'écran d'accueil d'un iPhone et d'un Android.
 - [ ] Toutes les Compétitions du §2 apparaissent au Calendrier, avec les horaires en heure de Paris (Pro D2 sous réserve du spike).
-- [ ] Chaque Match à venir affiche un Diffuseur et sa provenance. Une Correction de diffusion poussée dans le dépôt apparaît au déploiement suivant.
+- [ ] Chaque Match à venir affiche un Diffuseur et sa provenance, avec ou sans Clé personnelle. Une Correction de diffusion poussée dans le dépôt apparaît au déploiement suivant.
 - [ ] Un Score final apparaît dans l'heure qui suit la fin d'un Match.
 - [ ] Les Résumés EPCR s'affichent en vidéo intégrée. Un Match sans Résumé intégrable affiche un lien ou le bouton du Diffuseur.
 - [ ] Une Fiche joueur affiche le Parcours (quand Wikidata l'a) et les Stats de saison de base depuis le début de la saison 2026-27.
 - [ ] Les Classements de chaque Compétition sont affichés.
 - [ ] Les Équipes favorites persistent sur l'appareil et alimentent « Mes matchs ».
-- [ ] Aucune clé API n'apparaît dans le site publié ni dans l'historique du dépôt.
+- [ ] Aucune clé API n'apparaît dans le dépôt ni dans le site publié. La Clé personnelle ne quitte l'appareil que vers l'API Gemini.

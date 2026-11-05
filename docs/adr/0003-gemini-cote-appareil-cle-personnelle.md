@@ -1,0 +1,3 @@
+# Diffuseurs cherchés par Gemini depuis l'appareil, avec la clé personnelle de chaque personne
+
+Plutôt que de stocker une clé Google unique dans les secrets GitHub, chaque personne saisit sa propre clé Gemini dans l'app ; elle reste sur son appareil, et c'est le navigateur qui interroge Gemini pour les matchs des 7 prochains jours (réponses gardées 24 h sur l'appareil). Le quota gratuit de chacun est ainsi utilisé, et aucun secret n'est partagé. En contrepartie, les diffuseurs trouvés ne sont pas mutualisés entre appareils, et la clé est facultative. Sans clé, l'app affiche la Correction de diffusion ou, à défaut, la Règle de diffusion. On recommande de restreindre la clé au domaine `pentchaff.github.io` et à l'API Gemini.
