@@ -1,26 +1,98 @@
 {
-  "updatedAt": "2026-11-05T20:10:33.675Z",
-  "lastFullAt": "2026-11-05T20:10:33.675Z",
+  "updatedAt": "2026-11-05T20:23:41.142Z",
+  "lastFullAt": "2026-11-05T20:23:41.142Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
     "end": "2027-07-31T23:59:00.000Z",
     "label": "2026-27"
   },
-  "leagues": {},
-  "youtubeChannels": {},
+  "leagues": {
+    "top14": {
+      "espnId": "270559",
+      "espnName": "French Top 14",
+      "matches": 153
+    },
+    "champions-cup": {
+      "espnId": "271937",
+      "espnName": "European Rugby Champions Cup",
+      "matches": 48
+    },
+    "challenge-cup": {
+      "espnId": "272073",
+      "espnName": "European Rugby Challenge Cup",
+      "matches": 36
+    },
+    "six-nations": {
+      "espnId": "180659",
+      "espnName": "Six Nations",
+      "matches": 3
+    },
+    "nations-championship": {
+      "espnId": "17567",
+      "espnName": "Nations Championship",
+      "matches": 18
+    },
+    "tests": {
+      "espnId": "289234",
+      "espnName": "International Test Match",
+      "matches": 19
+    },
+    "rugby-championship": {
+      "espnId": "244293",
+      "espnName": "The Rugby Championship",
+      "matches": 2
+    },
+    "coupe-du-monde": {
+      "espnId": "164205",
+      "espnName": "Rugby World Cup",
+      "matches": 2
+    }
+  },
+  "youtubeChannels": {
+    "@CanalplusSport": "UC8ggH3zU61XO0nMskSQwZdA",
+    "@LNRofficiel": "UCbFKMZb7vDQ4wl6UIqq4DNw"
+  },
   "errors": [
-    "prod2: aucune ligue ESPN trouvée",
-    "matchs top14 (270559): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/270559/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs champions-cup (271937): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/271937/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs challenge-cup (272073): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/272073/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs six-nations (180659): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/180659/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs tests (10659): HTTP 404 https://site.api.espn.com/apis/site/v2/sports/rugby/10659/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs rugby-championship (244293): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/244293/scoreboard?dates=20260801-20270731&limit=1000",
-    "matchs coupe-du-monde (164205): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/164205/scoreboard?dates=20260801-20270731&limit=1000"
+    "prod2: aucune ligue ESPN trouvée"
   ],
   "lastRun": {
     "mode": "full",
-    "at": "2026-11-05T20:10:33.675Z",
-    "durationSec": 2
-  }
+    "at": "2026-11-05T20:23:41.142Z",
+    "durationSec": 99
+  },
+  "doneDays": {
+    "top14": [
+      "20261011",
+      "20261101"
+    ],
+    "champions-cup": [
+      "20261016",
+      "20261017",
+      "20261018"
+    ],
+    "challenge-cup": [
+      "20261016",
+      "20261017",
+      "20261018"
+    ],
+    "six-nations": [],
+    "nations-championship": [],
+    "tests": [
+      "20260808",
+      "20260815",
+      "20260822",
+      "20260829",
+      "20260905",
+      "20260912",
+      "20260919",
+      "20260927",
+      "20261010",
+      "20261017",
+      "20261024",
+      "20261031"
+    ],
+    "rugby-championship": [],
+    "coupe-du-monde": []
+  },
+  "lastFarAt": "2026-11-05T20:23:41.142Z"
 }
