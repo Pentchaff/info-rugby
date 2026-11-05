@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { STAT_LABELS, age, competitionBySlug, dayShortParis, matchById, matchUrl, meta, playerPosition, playerTeams, players, seasonStats, team, teamUrl } from '../../lib/data';
+import { STAT_LABELS, age, cleanTeamLabel, competitionBySlug, dayShortParis, matchById, matchUrl, meta, playerPosition, playerTeams, players, seasonStats, team, teamUrl } from '../../lib/data';
 import type { ParcoursEntry, Player } from '../../lib/types';
 
 export function getStaticPaths() {
@@ -16,16 +16,25 @@ const seasonLabel = meta.season.label || '';
 
 // Parcours (frise)
 const thisYear = new Date().getFullYear();
-const parcours: ParcoursEntry[] = (p.wikidata?.parcours ?? []).filter((e) => e.start !== null || e.end !== null);
-const lanes = { clubs: parcours.filter((e) => !e.national), nations: parcours.filter((e) => e.national) };
-const minY = Math.min(...parcours.map((e) => e.start ?? e.end ?? thisYear), thisYear);
+const all = (p.wikidata?.parcours ?? []).map((e) => {
+  const c = cleanTeamLabel(e.team);
+  return { ...e, team: c.name, national: e.national || c.national };
+});
+const dated = all.filter((e) => e.start !== null || e.end !== null).sort((a, b) => (a.start ?? a.end ?? 0) - (b.start ?? b.end ?? 0));
+const undated = all.filter((e) => e.start === null && e.end === null);
+// Club actuel absent de Wikidata : on l'ajoute d'après les feuilles de match.
+const words = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length > 3);
+if (club && all.length && !all.some((e) => words(e.team).some((w) => words(`${club.name} ${club.espnName}`).includes(w)))) {
+  undated.push({ team: `${club.name} (club actuel)`, start: null, end: null, national: false });
+}
+const lanes = { clubs: dated.filter((e) => !e.national), nations: dated.filter((e) => e.national) };
+const minY = Math.min(...dated.map((e) => e.start ?? e.end ?? thisYear), thisYear - 1);
 const maxY = thisYear + 1;
 const span = Math.max(1, maxY - minY);
 const pct = (y: number) => ((y - minY) / span) * 100;
-const ticks: number[] = [];
-const step = span > 14 ? 4 : span > 7 ? 2 : 1;
-for (let y = minY; y <= maxY; y += step) ticks.push(y);
-const fmtSpan = (e: ParcoursEntry) => `${e.start ?? '?'} – ${e.end ?? (e.start ? "aujourd'hui" : '?')}`;
+const fmtSpan = (e: ParcoursEntry) => `${e.start ?? '?'} – ${e.end ?? (e.start ? "auj." : '?')}`;
+const hasParcours = all.length > 0;
+const currentClub = club?.name ?? team(p.appearances.at(-1)?.teamId ?? '').name;
 
 const apps = [...p.appearances].reverse();
 ---
@@ -45,33 +54,35 @@ const apps = [...p.appearances].reverse();
 
   <h2>Parcours</h2>
   <section class="card pad">
-    {parcours.length === 0 ? (
-      <div class="timeline">
-        <div class="lane-label">Club</div>
-        <div class="row-bar"><span class="bar now" style="left:0;width:100%">{club?.name ?? team(p.appearances.at(-1)?.teamId ?? '').name}</span></div>
-        <p class="muted small" style="margin:6px 0 0">Saison {seasonLabel}</p>
-      </div>
-    ) : (
-      <div class="timeline">
-        {(['clubs', 'nations'] as const).map((k) => lanes[k].length > 0 && (
-          <>
-            <div class="lane-label">{k === 'clubs' ? 'Clubs' : 'Sélections'}</div>
-            {lanes[k].map((e) => {
-              const st = e.start ?? e.end ?? thisYear;
-              const en = e.end ?? (e.start ? maxY : st + 1);
-              return (
-                <div class="row-bar" title={`${e.team} : ${fmtSpan(e)}`}>
-                  <span class:list={['bar', k === 'nations' && 'nat', e.end === null && 'now']} style={`left:${pct(st)}%;width:${Math.max(pct(en) - pct(st), 6)}%`}></span>
-                  <span class="bar-text"><strong>{e.team}</strong> <span class="muted">{fmtSpan(e)}</span></span>
-                </div>
-              );
-            })}
-          </>
-        ))}
-        <div class="axis">{ticks.map((y) => <span style={`left:${pct(y)}%`}>{y}</span>)}</div>
-        {p.wikidata?.qid && <p class="muted small src">Source : <a class="link" href={`https://www.wikidata.org/wiki/${p.wikidata.qid}`} target="_blank" rel="noopener">Wikidata</a></p>}
+    {!hasParcours && (
+      <div class="tl-row">
+        <div class="tl-label"><strong>{currentClub}</strong> <span class="muted">saison {seasonLabel}</span></div>
+        <div class="track"><span class="bar now" style="left:0;width:100%"></span></div>
       </div>
     )}
+    {(['clubs', 'nations'] as const).map((k) => lanes[k].length > 0 && (
+      <>
+        <div class="lane-label">{k === 'clubs' ? 'Clubs' : 'Sélections'}</div>
+        {lanes[k].map((e) => {
+          const st = e.start ?? e.end ?? thisYear;
+          const en = e.end ?? (e.start ? maxY : st + 1);
+          return (
+            <div class="tl-row">
+              <div class="tl-label"><strong>{e.team}</strong> <span class="muted">{fmtSpan(e)}</span></div>
+              <div class="track"><span class:list={['bar', k === 'nations' && 'nat']} style={`left:${pct(st)}%;width:${Math.max(pct(en) - pct(st), 2)}%`}></span></div>
+            </div>
+          );
+        })}
+      </>
+    ))}
+    {dated.length > 0 && <div class="axis"><span style="left:0">{minY}</span><span style="right:0">{maxY - 1}</span></div>}
+    {undated.length > 0 && (
+      <>
+        <div class="lane-label">{dated.length ? 'Autres équipes (dates inconnues)' : 'Équipes'}</div>
+        <div class="chips wrap">{undated.map((e) => <span class="chip">{e.team}</span>)}</div>
+      </>
+    )}
+    {p.wikidata?.qid && <p class="muted small src">Source : <a class="link" href={`https://www.wikidata.org/wiki/${p.wikidata.qid}`} target="_blank" rel="noopener">Wikidata</a></p>}
   </section>
 
   <h2>Saison {seasonLabel}</h2>
@@ -114,16 +125,19 @@ const apps = [...p.appearances].reverse();
   .head p { margin: 2px 0; }
   .photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; background: var(--surface-2); flex: none; }
   .ph { display: grid; place-items: center; font-weight: 800; font-size: 1.4rem; color: var(--muted); }
-  .timeline { position: relative; }
-  .lane-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 6px 0 4px; }
-  .row-bar { position: relative; min-height: 40px; margin-bottom: 4px; background: var(--surface-2); border-radius: 8px; overflow: hidden; }
-  .bar { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); border-left: 3px solid var(--accent); display: flex; align-items: center; padding: 0 8px; font-weight: 700; font-size: .85rem; white-space: nowrap; }
-  .bar.nat { border-left-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
-  .bar.now { border-right: 0; }
-  .bar-text { position: relative; display: block; padding: 10px 10px; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .axis { position: relative; height: 18px; margin-top: 4px; font-size: .7rem; color: var(--muted); }
-  .axis span { position: absolute; transform: translateX(-50%); }
-  .axis span:first-child { transform: none; }
+  .lane-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 10px 0 6px; }
+  .lane-label:first-child { margin-top: 0; }
+  .tl-row { margin-bottom: 9px; }
+  .tl-label { font-size: .88rem; display: flex; justify-content: space-between; gap: 8px; }
+  .tl-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tl-label .muted { white-space: nowrap; font-size: .8rem; }
+  .track { position: relative; height: 8px; margin-top: 4px; background: var(--surface-2); border-radius: 99px; }
+  .bar { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--accent); }
+  .bar.nat { background: var(--gold); }
+  .axis { position: relative; height: 16px; font-size: .7rem; color: var(--muted); }
+  .axis span { position: absolute; }
+  .chips.wrap { flex-wrap: wrap; }
+  .chip { font-weight: 500; }
   .src { margin: 10px 0 0; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
   .tile { padding: 12px 14px; display: flex; flex-direction: column; }

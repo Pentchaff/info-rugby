@@ -156,3 +156,20 @@ export function playerPosition(p: Player): string | null {
   const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   return best ? JERSEY_FR[best[0]] : fromName;
 }
+
+// ---------- Parcours ----------
+
+/** Raccourcit les libellés Wikidata : « équipe d'Angleterre de rugby à XV » → « Angleterre ». */
+export function cleanTeamLabel(label: string): { name: string; national: boolean } {
+  let n = label.trim();
+  const national = /^(équipe|selection|sélection)\b/i.test(n) || /lions britanniques|british (and|&) irish lions|barbarians/i.test(n);
+  const u = n.match(/(?:moins de|under|U)[\s-]?(\d{2})(?:\s*ans)?/i);
+  n = n
+    .replace(/\s+(?:des\s+)?(?:moins de|under|U)[\s-]?\d{2}(?:\s*ans)?/i, '')
+    .replace(/\s+de rugby à (xv|7|sept|xiii)\b.*$/i, '')
+    .replace(/\s+rugby union team$/i, '')
+    .replace(/^équipe\s+(de\s+|d['’]\s*|du\s+|des\s+)/i, '')
+    .trim();
+  if (u) n += ` U${u[1]}`;
+  return { name: n.charAt(0).toUpperCase() + n.slice(1), national };
+}

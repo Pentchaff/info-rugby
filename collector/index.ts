@@ -443,7 +443,7 @@ async function collectResumes() {
       .filter((c) => c.competitions.includes(m.competition))
       .flatMap((c) => feeds.get(c.handle) ?? [])
       .filter((v) => new Date(v.publishedAt).getTime() > kickoff && new Date(v.publishedAt).getTime() < kickoff + 6 * D)
-      .map((v) => ({ v, score: titleMatches(v.title, ha, aa) }))
+      .map((v) => ({ v, score: titleMatches(v.title, ha, aa, season.start.getUTCFullYear()) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score || a.v.publishedAt.localeCompare(b.v.publishedAt));
     const best = candidates[0]?.v;

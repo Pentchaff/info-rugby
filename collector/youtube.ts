@@ -52,8 +52,11 @@ const norm = (s: string) =>
 const HIGHLIGHT_WORDS = /(resume|highlights|temps forts|extended|all tries|tous les essais|best of|le match|match report|full match|replay)/;
 
 /** Le titre mentionne-t-il les deux équipes (via leurs alias) ? */
-export function titleMatches(title: string, homeAliases: string[], awayAliases: string[]): number {
+export function titleMatches(title: string, homeAliases: string[], awayAliases: string[], seasonStartYear?: number): number {
   const t = ` ${norm(title)} `;
+  // Les rediffusions d'anciens matchs (« ... | Rugby World Cup 2019 | Full Match Replay ») sont écartées.
+  if (seasonStartYear && (title.match(/\b(19|20)\d{2}\b/g) ?? []).some((y) => Number(y) < seasonStartYear)) return 0;
+  if (/full match replay|re-watch|rewatch|classic/i.test(title)) return 0;
   const has = (aliases: string[]) => aliases.some((a) => a && t.includes(` ${norm(a)} `));
   if (!has(homeAliases) || !has(awayAliases)) return 0;
   return HIGHLIGHT_WORDS.test(t) ? 2 : 1;

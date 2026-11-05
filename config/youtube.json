@@ -1,11 +1,50 @@
 {
   "_doc": "Chaînes officielles utilisées pour les Résumés. handle : @nom de la chaîne YouTube (ou channelId si connu). competitions : slugs concernés.",
   "channels": [
-    { "handle": "@EPCRugby", "channelId": "", "competitions": ["champions-cup", "challenge-cup"] },
-    { "handle": "@SixNationsRugby", "channelId": "", "competitions": ["six-nations"] },
-    { "handle": "@WorldRugby", "channelId": "", "competitions": ["tests", "rugby-championship", "coupe-du-monde"] },
-    { "handle": "@FranceRugby", "channelId": "", "competitions": ["six-nations", "tests", "coupe-du-monde"] },
-    { "handle": "@CanalplusSport", "channelId": "", "competitions": ["top14", "prod2"] },
-    { "handle": "@LNRofficiel", "channelId": "", "competitions": ["top14", "prod2"] }
+    {
+      "handle": "@InvestecChampionsCup",
+      "channelId": "UCqn9RhigXvnvVUkKm5iAjxg",
+      "competitions": [
+        "champions-cup",
+        "challenge-cup"
+      ]
+    },
+    {
+      "handle": "@SixNationsRugby",
+      "channelId": "UCL5bAcVfbxSAs-UM5f5ncWg",
+      "competitions": [
+        "six-nations",
+        "nations-championship"
+      ]
+    },
+    {
+      "handle": "@WorldRugby",
+      "channelId": "UCE28rwYoaV7jvU6GVzdu_GQ",
+      "competitions": [
+        "tests",
+        "nations-championship",
+        "rugby-championship",
+        "coupe-du-monde"
+      ]
+    },
+    {
+      "handle": "@FranceRugby",
+      "channelId": "UCnH0bSmQqDBfNj9kZzCaINw",
+      "competitions": [
+        "six-nations",
+        "nations-championship",
+        "tests",
+        "coupe-du-monde"
+      ]
+    },
+    {
+      "handle": "@CanalplusSport",
+      "channelId": "UC8ggH3zU61XO0nMskSQwZdA",
+      "competitions": [
+        "top14",
+        "prod2",
+        "champions-cup"
+      ]
+    }
   ]
 }
