@@ -45,7 +45,7 @@ function writeJson(file: string, data: unknown) {
   writeFileSync(join(DATA, file), s);
 }
 
-const competitions: CompetitionConfig[] = JSON.parse(readFileSync(join(CONFIG, 'competitions.json'), 'utf8')).competitions;
+const competitions: CompetitionConfig[] = JSON.parse(readFileSync(join(CONFIG, 'competitions.json'), 'utf8')).competitions.filter((c: CompetitionConfig) => c.enabled !== false);
 const teamNames: Record<string, { fr: string; aliases: string[] }> = JSON.parse(readFileSync(join(CONFIG, 'teams.json'), 'utf8')).teams;
 const ytChannels: { handle: string; channelId: string; competitions: string[] }[] = JSON.parse(
   readFileSync(join(CONFIG, 'youtube.json'), 'utf8'),

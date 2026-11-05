@@ -122,4 +122,5 @@ export interface CompetitionConfig {
   exclude: string[];
   national: boolean;
   diffusion: string;
+  enabled?: boolean;
 }

@@ -13,7 +13,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 
 ### Compétitions suivies (rugby à XV masculin)
 
-- Top 14, Pro D2
+- Top 14 (la Pro D2 est retirée de la V1 : voir ADR 0002)
 - Champions Cup, Challenge Cup
 - Six Nations, Nations Championship (tests de juillet et novembre depuis 2026), autres tests internationaux, Rugby Championship, Coupe du monde
 
@@ -22,6 +22,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 - Scores en direct
 - Rappels, notifications push, abonnements calendrier (.ics)
 - Mode anti-spoiler
+- Pro D2 (absente d'ESPN ; pas de source gratuite fiable)
 - Joueurs favoris
 - Rugby féminin, rugby à 7, autres championnats (URC, Premiership, Super Rugby…)
 - Stats des saisons antérieures à 2026-27
@@ -31,7 +32,7 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 - Interface en **français**. Toutes les heures sont affichées en **heure de Paris** (Europe/Paris).
 - **Mobile d'abord**, installable comme PWA (manifest et icône), mais sans mode hors ligne exigé.
 - Thème clair et sombre selon le réglage du système.
-- Coût cible **0 €/mois**. Seule exception acceptée : API-Sports payant (environ 15 $/mois) en repli d'ESPN.
+- Coût **0 €/mois**, sans exception.
 - Le nom affiché est « Info Rugby ».
 
 ## 4. Architecture (voir ADR 0001)
@@ -56,17 +57,17 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 
 | Donnée | Source | Notes |
 | --- | --- | --- |
-| Matchs, horaires, Scores finaux, Feuilles de match, Classements, effectifs, logos | API non officielle ESPN (`site.api.espn.com/apis/site/v2/sports/rugby/{leagueId}/…`), sans clé (ADR 0002) | Accès derrière un **adaptateur** interchangeable. Repli : API-Sports Rugby payant. |
+| Matchs, horaires, Scores finaux, Feuilles de match, Classements, effectifs, logos | API non officielle ESPN (`site.api.espn.com/apis/site/v2/sports/rugby/{leagueId}/…`), sans clé (ADR 0002) | Accès derrière un **adaptateur** interchangeable. Pas de repli payant (0 €). |
 | Diffuseur d'un Match | Gemini avec Google Search grounding, appelé depuis le navigateur avec la Clé personnelle | Voir §6 |
 | Résumés | Flux RSS YouTube des **Chaînes officielles** et oEmbed YouTube | Voir §7. Sans clé, l'API YouTube Data n'est pas utilisée. |
 | Parcours d'un Joueur | Wikidata (clubs et sélections avec dates de début et de fin) | Sans clé |
 
 ### À vérifier en tout premier (spike)
 
-1. Les identifiants ESPN de chaque Compétition et la couverture de la Pro D2. Si la Pro D2 est absente, décider entre API-Sports payant et l'abandon de la Pro D2 en V1.
+1. Les identifiants ESPN de chaque Compétition et la couverture de la Pro D2. Résultat : la Pro D2 est absente d'ESPN ; elle est retirée de la V1.
 2. Le contenu des endpoints ESPN « summary » pour le rugby : Feuille de match, marqueurs, stats joueurs avancées (plaquages, mètres, franchissements, turnovers).
 3. Les identifiants des chaînes YouTube officielles et le comportement d'oEmbed sur une vidéo non intégrable.
-4. La couverture de Wikidata sur un échantillon de joueurs du Top 14 et de la Pro D2.
+4. La couverture de Wikidata sur un échantillon de joueurs du Top 14.
 
 ## 6. Où regarder
 
@@ -84,7 +85,7 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 
 ## 7. Résumés
 
-- Après chaque Match terminé, la tâche lit les flux RSS (15 dernières vidéos) des Chaînes officielles concernées : LNR / Top 14 / Pro D2, EPCR, Six Nations Rugby, World Rugby, FFR, Canal+ Sport.
+- Après chaque Match terminé, la tâche lit les flux RSS (15 dernières vidéos) des Chaînes officielles concernées : EPCR, Canal+ Sport, Six Nations Rugby, World Rugby, FFR.
 - Elle retient la vidéo dont le titre contient les deux équipes (avec une correspondance tolérante sur les noms), publiée après le coup d'envoi.
 - Elle vérifie via oEmbed si la vidéo est intégrable :
   - si oui, le lecteur YouTube est intégré dans la Page match. Le compte YouTube connecté dans le navigateur s'applique naturellement (historique, Premium), sans connexion côté app ;
@@ -154,7 +155,7 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 ## 10. Critères d'acceptation V1
 
 - [ ] Le site est publié sur GitHub Pages, installable sur l'écran d'accueil d'un iPhone et d'un Android.
-- [ ] Toutes les Compétitions du §2 apparaissent au Calendrier, avec les horaires en heure de Paris (Pro D2 sous réserve du spike).
+- [ ] Toutes les Compétitions du §2 apparaissent au Calendrier, avec les horaires en heure de Paris.
 - [ ] Chaque Match à venir affiche un Diffuseur et sa provenance, avec ou sans Clé personnelle. Une Correction de diffusion poussée dans le dépôt apparaît au déploiement suivant.
 - [ ] Un Score final apparaît dans l'heure qui suit la fin d'un Match.
 - [ ] Les Résumés EPCR s'affichent en vidéo intégrée. Un Match sans Résumé intégrable affiche un lien ou le bouton du Diffuseur.

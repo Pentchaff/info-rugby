@@ -12,7 +12,7 @@ function read<T>(dir: string, file: string, fallback: T): T {
   return JSON.parse(readFileSync(p, 'utf8')) as T;
 }
 
-export const competitions: CompetitionConfig[] = read(join(ROOT, 'config'), 'competitions.json', { competitions: [] as CompetitionConfig[] }).competitions;
+export const competitions: CompetitionConfig[] = read(join(ROOT, 'config'), 'competitions.json', { competitions: [] as CompetitionConfig[] }).competitions.filter((c) => c.enabled !== false);
 export const corrections: Record<string, string> = read(join(ROOT, 'config'), 'corrections-diffusion.json', { corrections: {} as Record<string, string> }).corrections;
 
 export const matches: Match[] = read<Match[]>(DATA, 'matches.json', []).filter((m) => competitions.some((c) => c.slug === m.competition));

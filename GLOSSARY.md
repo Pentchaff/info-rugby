@@ -7,7 +7,7 @@ Application personnelle (partageable avec des proches) pour suivre le rugby à X
 ### Matchs
 
 **Compétition**:
-Un championnat ou un tournoi suivi par l'app : Top 14, Pro D2, Champions Cup, Challenge Cup, Six Nations, Nations Championship, tests internationaux, Rugby Championship, Coupe du monde.
+Un championnat ou un tournoi suivi par l'app : Top 14, Champions Cup, Challenge Cup, Six Nations, Nations Championship, tests internationaux, Rugby Championship, Coupe du monde.
 _Avoid_: Ligue, championnat (pour désigner l'ensemble), tournoi (pour désigner l'ensemble)
 
 **Match**:

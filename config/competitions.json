@@ -1,5 +1,5 @@
 {
-  "_doc": "Compétitions suivies. espnId : identifiant de ligue ESPN (laisser vide pour une découverte automatique via 'match'). diffusion : Règle de diffusion (Diffuseur habituel en France). national : compétition entre sélections.",
+  "_doc": "Compétitions suivies. espnId : identifiant de ligue ESPN (laisser vide pour une découverte automatique via 'match'). diffusion : Règle de diffusion (Diffuseur habituel en France). national : compétition entre sélections. enabled: false pour désactiver une compétition.",
   "competitions": [
     {
       "slug": "top14",
@@ -22,7 +22,9 @@
       ],
       "exclude": [],
       "national": false,
-      "diffusion": "Canal+ Sport / Rugby+"
+      "diffusion": "Canal+ Sport / Rugby+",
+      "enabled": false,
+      "_note": "Désactivée en V1 : non couverte par ESPN, pas de source gratuite fiable (voir ADR 0002)."
     },
     {
       "slug": "champions-cup",
