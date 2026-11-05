@@ -14,6 +14,7 @@ const comp = competitionBySlug.get(m.competition);
 const d = diffusion(m);
 const final = m.status === 'final';
 const name = (id: string) => players[id]?.name ?? '?';
+const hasPage = (id: string) => (players[id]?.appearances.length ?? 0) > 0;
 const split = (l: LineupEntry[]) => ({ starters: l.filter((e) => e.starter), bench: l.filter((e) => !e.starter) });
 const lineups = m.lineups ? { home: split(m.lineups.home), away: split(m.lineups.away) } : null;
 const scorersBy = (teamId: string) => m.scorers.filter((s) => s.teamId === teamId);
@@ -111,7 +112,7 @@ const isCanal = /canal/i.test(d.name);
             {l.bench.length > 0 && <p class="muted small bench-title">Remplaçants</p>}
             <ol class="plain lineup">
               {l.bench.map((e) => (
-                <li><span class="num">{e.jersey ?? ''}</span><a href={playerUrl(e.playerId)}>{name(e.playerId)}</a></li>
+                <li class:list={[!hasPage(e.playerId) && 'muted']}><span class="num">{e.jersey ?? ''}</span>{hasPage(e.playerId) ? <a href={playerUrl(e.playerId)}>{name(e.playerId)}</a> : <span title="N'est pas entré en jeu">{name(e.playerId)}</span>}</li>
               ))}
             </ol>
           </div>

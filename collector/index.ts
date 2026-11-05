@@ -302,6 +302,8 @@ function applySummary(m: Match, s: espn.RawSummary) {
     if (!side) continue;
     const teamId = side === 'home' ? m.home.teamId : m.away.teamId;
     for (const e of r.entries) {
+      // Remplaçant resté sur le banc : sur la feuille de match, mais pas de match joué.
+      const played = e.starter || !s.subbedOn || s.subbedOn.has(e.playerId);
       lineups[side].push({ playerId: e.playerId, jersey: e.jersey, starter: e.starter, position: e.position });
       const sc = scoringBy.get(e.playerId);
       const tries = e.stats.tries ?? sc?.tries ?? 0;
@@ -328,7 +330,7 @@ function applySummary(m: Match, s: espn.RawSummary) {
       p.position = e.position ?? p.position;
       p.headshot = e.headshot ?? p.headshot;
       p.appearances = p.appearances.filter((a) => a.matchId !== m.id);
-      p.appearances.push({ matchId: m.id, teamId, starter: e.starter, jersey: e.jersey, tries, points, stats: advanced });
+      if (played) p.appearances.push({ matchId: m.id, teamId, starter: e.starter, jersey: e.jersey, tries, points, stats: advanced });
       p.appearances.sort((a, b) => (byId.get(a.matchId)?.date ?? '').localeCompare(byId.get(b.matchId)?.date ?? ''));
       players[e.playerId] = p;
       if (tries > 0 || points > 0) scorers.push({ playerId: e.playerId, teamId, tries, points });
@@ -353,7 +355,7 @@ async function collectAthletes(leagues: Map<string, string>) {
       const a = await espn.fetchAthlete(lid, p.id);
       if (a) {
         p.birthDate = a.birthDate ?? p.birthDate;
-        p.position = p.position ?? a.position;
+        p.position = a.position ?? p.position;
         p.headshot = p.headshot ?? a.headshot;
       }
       p.infoFetchedAt = now.toISOString();

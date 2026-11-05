@@ -4,7 +4,7 @@ import { STAT_LABELS, age, competitionBySlug, dayShortParis, matchById, matchUrl
 import type { ParcoursEntry, Player } from '../../lib/types';
 
 export function getStaticPaths() {
-  return Object.values(players).map((p) => ({ params: { id: p.id }, props: { player: p } }));
+  return Object.values(players).filter((p) => p.appearances.length > 0).map((p) => ({ params: { id: p.id }, props: { player: p } }));
 }
 const { player: p } = Astro.props as { player: Player };
 const { club, nation } = playerTeams(p);

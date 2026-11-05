@@ -36,6 +36,8 @@ export interface RawRosterEntry {
 
 export interface RawSummary {
   rosters: { teamId: string; homeAway: 'home' | 'away' | null; entries: RawRosterEntry[] }[];
+  /** Remplaçants entrés en jeu (null si la chronologie est absente). */
+  subbedOn: Set<string> | null;
   scoring: { playerId: string; teamId: string; kind: 'try' | 'conversion' | 'penalty' | 'drop' }[];
 }
 
@@ -172,7 +174,10 @@ function statsFromArray(arr: any[]): Record<string, number> {
 }
 
 export async function fetchSummary(leagueId: string, eventId: string): Promise<RawSummary> {
-  const j = await fetchJson(`${SITE}/${leagueId}/summary?event=${eventId}`);
+  return parseSummary(await fetchJson(`${SITE}/${leagueId}/summary?event=${eventId}`));
+}
+
+export function parseSummary(j: any): RawSummary {
   const rosters: RawSummary['rosters'] = [];
 
   // Format 1 : rosters[].roster[] (type football)
@@ -185,10 +190,11 @@ export async function fetchSummary(leagueId: string, eventId: string): Promise<R
       entries.push({
         playerId: String(a.id),
         name: a.displayName ?? a.fullName ?? '?',
-        position: p?.position?.name ?? a?.position?.name ?? p?.position?.displayName ?? null,
+        position: [p?.position?.displayName, p?.position?.name, a?.position?.displayName].find((x) => x && !/replacement|substitute/i.test(x)) ?? null,
         headshot: a?.headshot?.href ?? null,
         jersey: num(p?.jersey ?? a?.jersey),
-        starter: !!p?.starter,
+        // ESPN ne renseigne pas « starter » en rugby : les n° 1 à 15 sont titulaires.
+        starter: !!p?.starter || (num(p?.jersey) ?? 99) <= 15,
         stats: normalizeStats(statsFromArray(p?.stats)),
       });
     }
@@ -229,9 +235,19 @@ export async function fetchSummary(leagueId: string, eventId: string): Promise<R
 
   // Actions de score (si disponibles)
   const scoring: RawSummary['scoring'] = [];
-  const plays: any[] = [...(j?.scoringPlays ?? []), ...(j?.keyEvents ?? []), ...(j?.plays ?? [])];
+  const details: any[] = j?.header?.competitions?.[0]?.details ?? [];
+  const plays: any[] = [...details, ...(j?.scoringPlays ?? []), ...(j?.keyEvents ?? [])];
   const seen = new Set<string>();
+  const subbedOn = details.length ? new Set<string>() : null;
+  for (const d of details) {
+    if (/substitute on/i.test(String(d?.type?.text ?? ''))) {
+      const id = d?.participants?.[0]?.athlete?.id;
+      if (id) subbedOn!.add(String(id));
+    }
+  }
+  let seq = 0;
   for (const p of plays) {
+    seq++;
     const text = String(p?.type?.text ?? p?.type?.name ?? '').toLowerCase();
     let kind: RawSummary['scoring'][number]['kind'] | null = null;
     if (/penalty try/.test(text)) kind = null;
@@ -241,12 +257,12 @@ export async function fetchSummary(leagueId: string, eventId: string): Promise<R
     else if (/drop/.test(text)) kind = 'drop';
     const ath = p?.participants?.[0]?.athlete ?? p?.athletesInvolved?.[0];
     if (!kind || !ath?.id) continue;
-    const key = String(p.id ?? `${text}-${ath.id}-${p?.clock?.displayValue}`);
+    const key = String(p.id ?? `${text}-${ath.id}-${p?.clock?.value ?? seq}-${p?.period?.number ?? ''}`);
     if (seen.has(key)) continue;
     seen.add(key);
     scoring.push({ playerId: String(ath.id), teamId: String(p?.team?.id ?? ''), kind });
   }
-  return { rosters, scoring };
+  return { rosters, scoring, subbedOn };
 }
 
 // ---------- Classements ----------
@@ -322,7 +338,7 @@ export async function fetchAthlete(leagueId: string | null, athleteId: string) {
       return {
         name: (a?.displayName ?? a?.fullName ?? null) as string | null,
         birthDate: (a?.dateOfBirth ?? null) as string | null,
-        position: (a?.position?.name ?? a?.position?.displayName ?? null) as string | null,
+        position: (a?.position?.displayName ?? a?.position?.name ?? null) as string | null,
         headshot: (a?.headshot?.href ?? null) as string | null,
       };
     } catch {
