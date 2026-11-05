@@ -23,16 +23,21 @@ export async function probe(dataDir: string) {
       return null;
     }
   };
-  const sum = await save('summary', `${SITE}/270559/summary?event=604414`, 400000);
-  const aid = sum?.match(/"athlete":\{[^}]*?"id":"(\d+)"/)?.[1] ?? sum?.match(/athletes\/(\d+)/)?.[1];
-  index.athleteId = aid ?? 'none';
-  if (aid) {
-    await save('athlete-core', `${CORE}/leagues/270559/athletes/${aid}`, 8000);
-    await save('athlete-site', `https://site.web.api.espn.com/apis/common/v3/sports/rugby/athletes/${aid}`, 8000);
+  const { fetchFeed, resolveChannelId } = await import('./youtube.ts');
+  const { readFileSync } = await import('node:fs');
+  const chans = JSON.parse(readFileSync(new URL('../config/youtube.json', import.meta.url), 'utf8')).channels as { handle: string }[];
+  const extra = ['@EPCRugby', '@ChampionsCup', '@InvestecChampionsCup', '@SixNationsRugby', '@SixNations', '@WorldRugby', '@FranceRugby', '@FFRugby', '@CANALPLUSSPORT', '@canalplus', '@LNR', '@top14rugby', '@RugbyPass'];
+  const feeds: Record<string, unknown> = {};
+  for (const h of [...new Set([...chans.map((c) => c.handle), ...extra])]) {
+    try {
+      const id = await resolveChannelId(h);
+      if (!id) { feeds[h] = 'introuvable'; continue; }
+      const f = await fetchFeed(id);
+      feeds[h] = { id, channel: f[0]?.channel, titles: f.map((v) => `${v.publishedAt.slice(0, 10)} ${v.title}`) };
+    } catch (e) {
+      feeds[h] = `ERR ${(e as Error).message}`;
+    }
   }
-  await save('core-league-24400', `${CORE}/leagues/24400`, 1500);
-  await save('core-league-10659', `${CORE}/leagues/10659`, 1500);
-  await save('st-6n-2027', `${V2}/180659/standings?season=2027`, 1500);
-  await save('st-6n-2026', `${V2}/180659/standings?season=2026`, 1500);
+  writeFileSync(join(dir, 'youtube.json'), JSON.stringify(feeds, null, 2));
   writeFileSync(join(dir, 'index.json'), JSON.stringify(index, null, 2));
 }

@@ -227,10 +227,9 @@ async function collectEvents(leagues: Map<string, string>, mode: 'full' | 'light
         leagueName = def.leagueName ?? leagueName;
         applyEvents(c, def.events);
         n += def.events.length;
-        const past = def.calendar.length
-          ? def.calendar.filter((d) => d >= seasonStart && d <= limit)
-          : dayList(season.start, new Date(today.getTime() - 3 * D));
-        days = [...past.filter((d) => !done.has(d)), ...days];
+        // Le calendrier ESPN est incomplet : on parcourt tous les jours passés de la saison, une seule fois.
+        const past = dayList(season.start, new Date(today.getTime() - 3 * D));
+        days = [...past.filter((d) => d >= seasonStart && !done.has(d)), ...days];
       }
     } catch (e) {
       fail(`calendrier ${c.slug} (${id})`, e);
