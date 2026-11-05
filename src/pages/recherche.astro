@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { url } from '../lib/data';
+---
+<Layout title="Recherche" active="recherche">
+  <h1>Recherche</h1>
+  <input type="search" id="q" placeholder="Joueur ou équipe…" autocomplete="off" enterkeyhint="search" data-index={url('recherche-index.json')} data-base={url('')} />
+  <ul id="results" class="results card" hidden></ul>
+  <p class="empty" id="hint">Tapez au moins 2 lettres.</p>
+</Layout>
+
+<style>
+  #q { margin-top: 10px; font-size: 1rem; }
+  .results { list-style: none; padding: 0; margin: 12px 0 0; }
+  .results li + li { border-top: 1px solid var(--border); }
+  .results a { display: flex; justify-content: space-between; gap: 10px; padding: 11px 14px; }
+  .results .k { font-size: .72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; }
+</style>
+
+<script>
+  type Item = { k: 'e' | 'j'; id: string; n: string; a?: string; s: string };
+  const q = document.getElementById('q') as HTMLInputElement;
+  const list = document.getElementById('results')!;
+  const hint = document.getElementById('hint')!;
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let items: (Item & { h: string })[] | null = null;
+  async function load() {
+    if (items) return items;
+    const r = await fetch(q.dataset.index!);
+    items = ((await r.json()) as Item[]).map((i) => ({ ...i, h: norm(`${i.n} ${i.a ?? ''}`) }));
+    return items;
+  }
+  function esc(s: string) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  }
+  async function run() {
+    const v = norm(q.value.trim());
+    if (v.length < 2) {
+      list.hidden = true;
+      hint.hidden = false;
+      hint.textContent = 'Tapez au moins 2 lettres.';
+      return;
+    }
+    const words = v.split(/\s+/);
+    const all = await load();
+    const found = all
+      .filter((i) => words.every((w) => i.h.includes(w)))
+      .sort((a, b) => Number(b.h.startsWith(v)) - Number(a.h.startsWith(v)) || (a.k === b.k ? a.n.localeCompare(b.n) : a.k === 'e' ? -1 : 1))
+      .slice(0, 40);
+    const base = q.dataset.base!;
+    list.innerHTML = found
+      .map((i) => `<li><a href="${base}${i.k === 'e' ? 'equipe' : 'joueur'}/${i.id}/"><span><strong>${esc(i.n)}</strong><br><span class="muted small">${esc(i.s)}</span></span><span class="k">${i.k === 'e' ? 'Équipe' : 'Joueur'}</span></a></li>`)
+      .join('');
+    list.hidden = found.length === 0;
+    hint.hidden = found.length > 0;
+    hint.textContent = 'Aucun résultat.';
+  }
+  q.addEventListener('input', run);
+  q.focus();
+</script>

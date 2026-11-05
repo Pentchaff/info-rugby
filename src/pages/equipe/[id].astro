@@ -1,0 +1,91 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MatchCard from '../../components/MatchCard.astro';
+import TeamLogo from '../../components/TeamLogo.astro';
+import { competitionBySlug, matches, playerPosition, playerUrl, players, teams, url } from '../../lib/data';
+import type { Team } from '../../lib/types';
+
+export function getStaticPaths() {
+  return Object.values(teams).map((t) => ({ params: { id: t.id }, props: { team: t } }));
+}
+const { team: t } = Astro.props as { team: Team };
+const own = matches.filter((m) => m.home.teamId === t.id || m.away.teamId === t.id);
+const next = own.filter((m) => m.status !== 'final' && m.status !== 'canceled').slice(0, 5);
+const last = own.filter((m) => m.status === 'final').reverse().slice(0, 10);
+
+const squad = Object.values(players)
+  .map((p) => {
+    const apps = p.appearances.filter((a) => a.teamId === t.id);
+    return { p, n: apps.length, tries: apps.reduce((s, a) => s + a.tries, 0), pos: playerPosition(p) };
+  })
+  .filter((x) => x.n > 0);
+const ORDER = ['Pilier', 'Talonneur', '2e ligne', '3e ligne aile', '3e ligne centre', 'Avant', 'Demi de mêlée', "Demi d'ouverture", 'Centre', 'Ailier', 'Arrière', 'Trois-quarts'];
+squad.sort((a, b) => {
+  const ia = ORDER.indexOf(a.pos ?? ''), ib = ORDER.indexOf(b.pos ?? '');
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || b.n - a.n || a.p.name.localeCompare(b.p.name);
+});
+---
+<Layout title={t.name}>
+  <section class="head">
+    <TeamLogo team={t} size="lg" />
+    <div>
+      <h1>{t.name}</h1>
+      <p class="muted small">{t.competitions.map((c) => competitionBySlug.get(c)?.name).filter(Boolean).join(' · ')}</p>
+    </div>
+  </section>
+  <button class="btn" id="fav" type="button" data-team={t.id} aria-pressed="false">☆ Ajouter aux favoris</button>
+
+  <h2>Prochains matchs</h2>
+  {next.length === 0 && <p class="empty card">Aucun match programmé.</p>}
+  <div class="stack">{next.map((m) => <MatchCard match={m} showDate />)}</div>
+  {own.length > 5 && <p class="small"><a class="link" href={url(`calendrier/?equipe=${t.id}`)}>Tout le calendrier de l'équipe →</a></p>}
+
+  <h2>Derniers résultats</h2>
+  {last.length === 0 && <p class="empty card">Pas encore de résultat cette saison.</p>}
+  <div class="stack">{last.map((m) => <MatchCard match={m} />)}</div>
+
+  <h2>Effectif utilisé cette saison</h2>
+  {squad.length === 0 && <p class="empty card">Aucune feuille de match collectée pour l'instant.</p>}
+  {squad.length > 0 && (
+    <section class="card scroll-x">
+      <table>
+        <thead><tr><th>Joueur</th><th>Poste</th><th>Matchs</th><th>Essais</th></tr></thead>
+        <tbody>
+          {squad.map((x) => (
+            <tr>
+              <td><a class="link" href={playerUrl(x.p.id)}>{x.p.name}</a></td>
+              <td class="muted">{x.pos ?? '—'}</td>
+              <td>{x.n}</td>
+              <td>{x.tries}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )}
+</Layout>
+
+<style>
+  .head { display: flex; align-items: center; gap: 14px; margin: 6px 0 12px; }
+  td:nth-child(2) { text-align: left; font-size: .82rem; }
+  th:nth-child(2) { text-align: left; }
+</style>
+
+<script>
+  import { getFavorites, setFavorites } from '../../scripts/storage';
+  const btn = document.getElementById('fav') as HTMLButtonElement;
+  const id = btn.dataset.team!;
+  const render = () => {
+    const on = getFavorites().has(id);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.textContent = on ? '★ Équipe favorite' : '☆ Ajouter aux favoris';
+    btn.classList.toggle('primary', on);
+  };
+  btn.addEventListener('click', () => {
+    const f = getFavorites();
+    f.has(id) ? f.delete(id) : f.add(id);
+    setFavorites(f);
+    render();
+  });
+  render();
+</script>

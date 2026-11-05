@@ -1,0 +1,114 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MatchCard from '../components/MatchCard.astro';
+import { competitionBySlug, corrections, dayKey, dayParis, matches, team, timeParis, url } from '../lib/data';
+import type { Match } from '../lib/types';
+
+const now = Date.now();
+const H = 3600_000;
+const upcomingAll = matches.filter((m) => (m.status === 'scheduled' || m.status === 'live' || m.status === 'postponed') && new Date(m.date).getTime() > now - 3 * H);
+let upcoming = upcomingAll.filter((m) => new Date(m.date).getTime() < now + 7 * 24 * H);
+if (upcoming.length < 6) upcoming = upcomingAll.slice(0, 12);
+const results = matches
+  .filter((m) => m.status === 'final' && new Date(m.date).getTime() > now - 8 * 24 * H)
+  .sort((a, b) => b.date.localeCompare(a.date))
+  .slice(0, 24);
+
+// Pour « Mes matchs » : tous les matchs proches (favoris filtrés côté appareil).
+const favPool = [
+  ...matches.filter((m) => m.status !== 'final' && new Date(m.date).getTime() > now - 3 * H).slice(0, 400),
+  ...matches.filter((m) => m.status === 'final' && new Date(m.date).getTime() > now - 21 * 24 * H),
+];
+
+function byDay(list: Match[]) {
+  const groups = new Map<string, { label: string; items: Match[] }>();
+  for (const m of list) {
+    const k = dayKey(m.date);
+    const g = groups.get(k) ?? { label: dayParis(m.date), items: [] };
+    g.items.push(m);
+    groups.set(k, g);
+  }
+  return [...groups.values()];
+}
+
+const gemini = upcomingAll
+  .filter((m) => new Date(m.date).getTime() < now + 7 * 24 * H)
+  .map((m) => ({
+    id: m.id,
+    label: `${competitionBySlug.get(m.competition)?.name} : ${team(m.home.teamId).name} - ${team(m.away.teamId).name}, ${dayParis(m.date).toLowerCase()} à ${timeParis(m.date)}`,
+    correction: !!corrections[m.id],
+  }));
+---
+<Layout active="accueil">
+  <section id="mes-matchs" hidden>
+    <h2>Mes matchs</h2>
+    <div class="stack" id="mes-matchs-list"></div>
+    <p class="empty card" id="mes-matchs-empty" hidden>Aucun match à venir ou récent pour vos équipes.</p>
+  </section>
+
+  <p class="muted small" id="fav-hint">
+    Astuce : ajoutez vos équipes favorites depuis leur page pour voir « Mes matchs » ici.
+  </p>
+
+  <p class="muted small" id="gemini-status" hidden></p>
+
+  <h2>Prochains matchs</h2>
+  {upcoming.length === 0 && <p class="empty card">Aucun match programmé pour le moment.</p>}
+  {byDay(upcoming).map((g) => (
+    <>
+      <h3>{g.label}</h3>
+      <div class="stack">{g.items.map((m) => <MatchCard match={m} />)}</div>
+    </>
+  ))}
+
+  <h2>Derniers résultats</h2>
+  {results.length === 0 && <p class="empty card">Pas de résultat récent.</p>}
+  <div class="stack">{results.map((m) => <MatchCard match={m} />)}</div>
+
+  <p class="small"><a class="link" href={url('calendrier/')}>Voir tout le calendrier →</a></p>
+
+  <template id="fav-pool">
+    {favPool.map((m) => <MatchCard match={m} showDate />)}
+  </template>
+  <script type="application/json" id="upcoming-json" set:html={JSON.stringify(gemini)} />
+</Layout>
+
+<script>
+  import { getFavorites } from '../scripts/storage';
+  import { applyCachedBroadcasters, getKey, refreshBroadcasters, type UpcomingMatch } from '../scripts/gemini';
+
+  const favs = getFavorites();
+  if (favs.size) {
+    document.getElementById('fav-hint')!.hidden = true;
+    const section = document.getElementById('mes-matchs')!;
+    const list = document.getElementById('mes-matchs-list')!;
+    const tpl = document.getElementById('fav-pool') as HTMLTemplateElement;
+    const cards = [...tpl.content.querySelectorAll<HTMLElement>('[data-teams]')].filter((c) =>
+      c.dataset.teams!.split(' ').some((t) => favs.has(t)),
+    );
+    const upcoming = cards.filter((c) => !c.querySelector('.score')).slice(0, 6);
+    const recent = cards.filter((c) => c.querySelector('.score')).sort((a, b) => b.dataset.date!.localeCompare(a.dataset.date!)).slice(0, 3);
+    for (const c of [...upcoming, ...recent]) list.appendChild(c);
+    document.getElementById('mes-matchs-empty')!.hidden = upcoming.length + recent.length > 0;
+    section.hidden = false;
+  }
+
+  applyCachedBroadcasters();
+
+  if (getKey()) {
+    const status = document.getElementById('gemini-status')!;
+    const upcoming = JSON.parse(document.getElementById('upcoming-json')!.textContent || '[]') as UpcomingMatch[];
+    refreshBroadcasters(upcoming, (msg) => {
+      status.hidden = false;
+      status.textContent = msg;
+    })
+      .then(() => {
+        status.hidden = true;
+        applyCachedBroadcasters();
+      })
+      .catch((e) => {
+        status.hidden = false;
+        status.textContent = `Diffuseurs : la recherche Gemini a échoué (${e.message}). Diffuseurs habituels affichés.`;
+      });
+  }
+</script>

@@ -1,0 +1,178 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TeamLogo from '../../components/TeamLogo.astro';
+import { competitionBySlug, dayParis, diffusion, matches, playerUrl, players, positionFr, team, teamUrl, timeParis } from '../../lib/data';
+import type { LineupEntry, Match } from '../../lib/types';
+
+export function getStaticPaths() {
+  return matches.map((m) => ({ params: { id: m.id }, props: { match: m } }));
+}
+const { match: m } = Astro.props as { match: Match };
+const home = team(m.home.teamId);
+const away = team(m.away.teamId);
+const comp = competitionBySlug.get(m.competition);
+const d = diffusion(m);
+const final = m.status === 'final';
+const name = (id: string) => players[id]?.name ?? '?';
+const split = (l: LineupEntry[]) => ({ starters: l.filter((e) => e.starter), bench: l.filter((e) => !e.starter) });
+const lineups = m.lineups ? { home: split(m.lineups.home), away: split(m.lineups.away) } : null;
+const scorersBy = (teamId: string) => m.scorers.filter((s) => s.teamId === teamId);
+const editUrl = 'https://github.com/Pentchaff/info-rugby/edit/main/config/corrections-diffusion.json';
+const watchUrl = m.resume ? `https://www.youtube.com/watch?v=${m.resume.videoId}` : null;
+const isCanal = /canal/i.test(d.name);
+---
+<Layout title={`${home.name} - ${away.name}`}>
+  <p class="badge">{comp?.name}{m.round ? ` · ${m.round}` : ''}</p>
+  <section class="card pad head">
+    <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong></a>
+    <div class="center">
+      {final || m.status === 'live'
+        ? <div class="big">{m.home.score ?? '–'} <span class="muted">-</span> {m.away.score ?? '–'}</div>
+        : <div class="big">{timeParis(m.date)}</div>}
+      <div class="muted small">{dayParis(m.date)}</div>
+      {final && <div class="state">Terminé</div>}
+      {m.status === 'live' && <div class="state live">En cours</div>}
+      {m.status === 'postponed' && <div class="state">Reporté</div>}
+      {m.status === 'canceled' && <div class="state">Annulé</div>}
+    </div>
+    <a href={teamUrl(away.id)} class="side"><TeamLogo team={away} size="lg" /><strong>{away.name}</strong></a>
+  </section>
+  {m.venue && <p class="muted small center-text">📍 {m.venue}</p>}
+
+  <h2>Où regarder</h2>
+  <section class="card pad">
+    <div class="diff" data-diff-id={m.id} data-source={d.source}>
+      <strong class="diff-name">{d.name}</strong>
+    </div>
+    <p class="muted small" id="diff-prov">
+      {d.source === 'correction' ? 'Corrigé à la main.' : 'Diffuseur habituel de la compétition.'}
+    </p>
+    <div id="diff-sources" class="small"></div>
+    <div id="diff-suggestions"></div>
+  </section>
+
+  {final && (
+    <>
+      <h2>Résumé</h2>
+      {m.resume && m.resume.embeddable && (
+        <div class="video card">
+          <iframe
+            src={`https://www.youtube.com/embed/${m.resume.videoId}?rel=0`}
+            title={m.resume.title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen></iframe>
+        </div>
+      )}
+      {m.resume && <p class="small muted">{m.resume.title} · {m.resume.channel} · <a class="link" href={watchUrl} target="_blank" rel="noopener">Ouvrir dans YouTube</a></p>}
+      {!m.resume && (
+        <section class="card pad">
+          <p class="muted" style="margin:0 0 10px">Pas de résumé officiel disponible sur YouTube pour ce match.</p>
+          {isCanal
+            ? <a class="btn primary" href="https://www.canalplus.com/sport/rugby/" target="_blank" rel="noopener">Voir sur Canal+</a>
+            : <a class="btn" href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${home.name} ${away.name} résumé rugby`)}`} target="_blank" rel="noopener">Chercher sur YouTube</a>}
+        </section>
+      )}
+    </>
+  )}
+
+  {m.scorers.length > 0 && (
+    <>
+      <h2>Marqueurs</h2>
+      <section class="card pad two">
+        {[home, away].map((t) => (
+          <div>
+            <h3>{t.name}</h3>
+            {scorersBy(t.id).length === 0 && <p class="muted small">—</p>}
+            <ul class="plain">
+              {scorersBy(t.id).map((s) => (
+                <li><a class="link" href={playerUrl(s.playerId)}>{name(s.playerId)}</a> <span class="muted small">{s.tries > 0 ? `${s.tries} essai${s.tries > 1 ? 's' : ''}` : ''}{s.tries > 0 && s.points > 5 * s.tries ? ', ' : ''}{s.points > 5 * s.tries ? `${s.points} pts` : ''}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+    </>
+  )}
+
+  {lineups && (
+    <>
+      <h2>Feuille de match</h2>
+      <section class="card pad two">
+        {([[home, lineups.home], [away, lineups.away]] as const).map(([t, l]) => (
+          <div>
+            <h3>{t.name}</h3>
+            <ol class="plain lineup">
+              {l.starters.map((e) => (
+                <li><span class="num">{e.jersey ?? ''}</span><a href={playerUrl(e.playerId)}>{name(e.playerId)}</a><span class="muted pos">{positionFr(e.position, e.jersey)}</span></li>
+              ))}
+            </ol>
+            {l.bench.length > 0 && <p class="muted small bench-title">Remplaçants</p>}
+            <ol class="plain lineup">
+              {l.bench.map((e) => (
+                <li><span class="num">{e.jersey ?? ''}</span><a href={playerUrl(e.playerId)}>{name(e.playerId)}</a></li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </section>
+    </>
+  )}
+
+  <p class="muted small" style="margin-top:24px">
+    Identifiant du match : <code>{m.id}</code> ·
+    <a class="link" href={editUrl} target="_blank" rel="noopener">corriger le diffuseur</a>
+  </p>
+</Layout>
+
+<style>
+  .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 6px; }
+  .side { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: .92rem; }
+  .center { text-align: center; }
+  .center-text { text-align: center; }
+  .big { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .state { font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .state.live { color: var(--live); }
+  .diff-name { font-size: 1.1rem; }
+  .video { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .two h3 { margin-top: 0; }
+  .plain { list-style: none; margin: 0; padding: 0; }
+  .plain li { padding: 3px 0; font-size: .9rem; }
+  .lineup li { display: grid; grid-template-columns: 22px 1fr; column-gap: 6px; }
+  .lineup .num { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .lineup .pos { grid-column: 2; font-size: .75rem; }
+  .bench-title { margin: 10px 0 2px; }
+  #diff-sources a { color: var(--accent); }
+  @media (max-width: 420px) { .two { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { cached } from '../../scripts/gemini';
+  const el = document.querySelector<HTMLElement>('[data-diff-id]')!;
+  const c = el.dataset.source !== 'correction' ? cached(el.dataset.diffId!) : null;
+  if (c && c.list.length) {
+    document.getElementById('diff-prov')!.textContent = `Trouvé par une recherche Google (Gemini), le ${new Date(c.at).toLocaleDateString('fr-FR')}. À vérifier :`;
+    const box = document.getElementById('diff-sources')!;
+    c.sources.forEach((s) => {
+      const a = document.createElement('a');
+      a.href = s.uri;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = s.title;
+      const p = document.createElement('div');
+      p.appendChild(a);
+      box.appendChild(p);
+    });
+    if (c.suggestions) {
+      // Suggestions de recherche Google (affichage exigé avec le grounding), isolées dans une iframe.
+      const f = document.createElement('iframe');
+      f.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
+      f.srcdoc = c.suggestions;
+      f.style.cssText = 'width:100%;border:0;height:80px;margin-top:8px';
+      document.getElementById('diff-suggestions')!.appendChild(f);
+    }
+  }
+</script>

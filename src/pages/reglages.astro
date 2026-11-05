@@ -1,0 +1,161 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { competitionBySlug, meta, teams, url } from '../lib/data';
+
+const teamNames = Object.fromEntries(Object.values(teams).map((t) => [t.id, t.name]));
+const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }) : '—');
+---
+<Layout title="Réglages" active="reglages">
+  <h1>Réglages</h1>
+
+  <h2>Mes équipes favorites</h2>
+  <section class="card pad">
+    <ul id="favs" class="plain"></ul>
+    <p id="favs-empty" class="muted small" style="margin:0">Aucune pour l'instant. Ouvrez la page d'une équipe (depuis un match ou la <a class="link" href={url('recherche/')}>recherche</a>) et touchez « Ajouter aux favoris ».</p>
+  </section>
+
+  <h2>Recherche des diffuseurs (facultatif)</h2>
+  <section class="card pad stack">
+    <p class="small" style="margin-top:0">
+      Sans clé, l'app affiche le diffuseur <em>habituel</em> de chaque compétition. Avec votre clé Google Gemini (gratuite), elle cherche sur Google le diffuseur exact des matchs des 7 prochains jours.
+      La clé reste <strong>uniquement sur ce téléphone</strong> et n'est envoyée qu'à Google.
+    </p>
+    <label class="small muted" for="key">Clé Gemini</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" />
+    <details>
+      <summary class="small">Modèle (avancé)</summary>
+      <input id="model" type="text" spellcheck="false" style="margin-top:8px" />
+    </details>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="btn primary" id="save" type="button">Enregistrer et tester</button>
+      <button class="btn danger" id="del" type="button">Supprimer la clé</button>
+    </div>
+    <p id="key-status" class="small" aria-live="polite"></p>
+    <details>
+      <summary class="small">Comment obtenir une clé gratuite ?</summary>
+      <ol class="small prose">
+        <li>Ouvrez <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio → API keys</a> avec votre compte Google.</li>
+        <li>Touchez <strong>Create API key</strong>, puis copiez la clé (elle commence par <code>AIza</code>).</li>
+        <li><strong>Protégez-la</strong> (recommandé) : dans la <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console Google Cloud → Identifiants</a>, ouvrez la clé et réglez :
+          <ul>
+            <li><em>Restrictions relatives aux applications</em> → <strong>Sites Web</strong> → ajoutez <code>https://pentchaff.github.io/*</code></li>
+            <li><em>Restrictions relatives aux API</em> → <strong>Generative Language API</strong> uniquement</li>
+          </ul>
+          Ainsi, une clé copiée ne servirait à rien ailleurs.
+        </li>
+        <li>Collez la clé ci-dessus et touchez « Enregistrer et tester ».</li>
+      </ol>
+    </details>
+    <button class="btn" id="clear-cache" type="button">Oublier les diffuseurs trouvés</button>
+  </section>
+
+  <h2>Installer l'app</h2>
+  <section class="card pad small">
+    <p style="margin-top:0"><strong>iPhone</strong> : dans Safari, bouton Partager → « Sur l'écran d'accueil ».</p>
+    <p style="margin-bottom:0"><strong>Android</strong> : dans Chrome, menu ⋮ → « Ajouter à l'écran d'accueil ».</p>
+  </section>
+
+  <h2>État des données</h2>
+  <section class="card pad small">
+    <p style="margin-top:0">Dernière mise à jour : <strong>{fmt(meta.updatedAt)}</strong> · dernière collecte complète : {fmt(meta.lastFullAt)}</p>
+    <div class="scroll-x">
+      <table>
+        <thead><tr><th>Compétition</th><th>ESPN</th><th>Matchs</th></tr></thead>
+        <tbody>
+          {Object.entries(meta.leagues).map(([slug, l]) => (
+            <tr><td>{competitionBySlug.get(slug)?.name ?? slug}</td><td class="muted">{l.espnId} {l.espnName ? `· ${l.espnName}` : ''}</td><td>{l.matches}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    {meta.errors.length > 0 && (
+      <details style="margin-top:10px">
+        <summary>{meta.errors.length} avertissement(s) lors de la dernière collecte</summary>
+        <ul class="muted">{meta.errors.map((e) => <li>{e}</li>)}</ul>
+      </details>
+    )}
+    <p class="muted" style="margin-bottom:0">Sources : ESPN (matchs, joueurs), Wikidata (parcours), chaînes YouTube officielles (résumés).</p>
+  </section>
+  <script type="application/json" id="team-names" set:html={JSON.stringify(teamNames)} />
+</Layout>
+
+<style>
+  .plain { list-style: none; margin: 0; padding: 0; }
+  .plain li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .plain li + li { border-top: 1px solid var(--border); }
+  #key-status.ok { color: var(--win); }
+  #key-status.err { color: var(--live); }
+  td:nth-child(2) { text-align: left; }
+</style>
+
+<script>
+  import { KEYS, get, getFavorites, remove, set, setFavorites } from '../scripts/storage';
+  import { DEFAULT_MODEL, testKey } from '../scripts/gemini';
+
+  const base = document.body.dataset.base ?? '/';
+  const names = JSON.parse(document.getElementById('team-names')!.textContent || '{}') as Record<string, string>;
+  const favList = document.getElementById('favs')!;
+  function renderFavs() {
+    const favs = [...getFavorites()];
+    favList.innerHTML = '';
+    for (const id of favs) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.className = 'link';
+      a.href = `${base}equipe/${id}/`;
+      a.textContent = names[id] ?? `Équipe ${id}`;
+      const b = document.createElement('button');
+      b.className = 'btn small';
+      b.type = 'button';
+      b.textContent = 'Retirer';
+      b.onclick = () => {
+        const f = getFavorites();
+        f.delete(id);
+        setFavorites(f);
+        renderFavs();
+      };
+      li.append(a, b);
+      favList.appendChild(li);
+    }
+    document.getElementById('favs-empty')!.hidden = favs.length > 0;
+  }
+  renderFavs();
+
+  const key = document.getElementById('key') as HTMLInputElement;
+  const model = document.getElementById('model') as HTMLInputElement;
+  const status = document.getElementById('key-status')!;
+  key.value = get<string>(KEYS.apiKey, '');
+  model.value = get<string>(KEYS.model, '') || DEFAULT_MODEL;
+  const say = (msg: string, cls = '') => {
+    status.textContent = msg;
+    status.className = `small ${cls}`;
+  };
+  if (key.value) say('Une clé est enregistrée sur cet appareil.');
+
+  document.getElementById('save')!.addEventListener('click', async () => {
+    const v = key.value.trim();
+    if (!v) return say('Collez une clé avant d’enregistrer.', 'err');
+    set(KEYS.apiKey, v);
+    set(KEYS.model, model.value.trim() === DEFAULT_MODEL ? '' : model.value.trim());
+    say('Test en cours…');
+    try {
+      await testKey();
+      say('✓ Clé valide. Les diffuseurs seront cherchés à l’ouverture de l’accueil.', 'ok');
+    } catch (e) {
+      say(`✗ La clé ne fonctionne pas : ${(e as Error).message}`, 'err');
+    }
+  });
+  document.getElementById('del')!.addEventListener('click', () => {
+    remove(KEYS.apiKey);
+    key.value = '';
+    say('Clé supprimée de cet appareil.');
+  });
+  document.getElementById('clear-cache')!.addEventListener('click', () => {
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith('ir:diff:')).forEach((k) => localStorage.removeItem(k));
+      say('Diffuseurs oubliés : ils seront recherchés à nouveau.');
+    } catch {
+      /* stockage indisponible */
+    }
+  });
+</script>

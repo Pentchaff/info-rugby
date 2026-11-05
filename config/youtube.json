@@ -1,0 +1,11 @@
+{
+  "_doc": "Chaînes officielles utilisées pour les Résumés. handle : @nom de la chaîne YouTube (ou channelId si connu). competitions : slugs concernés.",
+  "channels": [
+    { "handle": "@EPCRugby", "channelId": "", "competitions": ["champions-cup", "challenge-cup"] },
+    { "handle": "@SixNationsRugby", "channelId": "", "competitions": ["six-nations"] },
+    { "handle": "@WorldRugby", "channelId": "", "competitions": ["tests", "rugby-championship", "coupe-du-monde"] },
+    { "handle": "@FranceRugby", "channelId": "", "competitions": ["six-nations", "tests", "coupe-du-monde"] },
+    { "handle": "@CanalplusSport", "channelId": "", "competitions": ["top14", "prod2"] },
+    { "handle": "@LNRofficiel", "channelId": "", "competitions": ["top14", "prod2"] }
+  ]
+}

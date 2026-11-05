@@ -1,0 +1,9 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { url } from '../lib/data';
+---
+<Layout title="Page introuvable">
+  <h1>Page introuvable</h1>
+  <p class="muted">Ce match ou ce joueur n'existe plus dans les données de la saison.</p>
+  <p><a class="link" href={url('')}>Retour à l'accueil</a></p>
+</Layout>

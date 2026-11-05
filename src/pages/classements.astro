@@ -1,0 +1,72 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TeamLogo from '../components/TeamLogo.astro';
+import { competitions, standings, team, teamUrl } from '../lib/data';
+import type { StandingRow } from '../lib/types';
+
+const comps = competitions.filter((c) => standings[c.slug]?.length);
+const cols: { key: keyof StandingRow; label: string }[] = [
+  { key: 'played', label: 'J' }, { key: 'won', label: 'G' }, { key: 'drawn', label: 'N' }, { key: 'lost', label: 'P' },
+  { key: 'diff', label: 'Diff' }, { key: 'bonus', label: 'Bo' }, { key: 'points', label: 'Pts' },
+];
+---
+<Layout title="Classements" active="classements">
+  <h1>Classements</h1>
+  {comps.length === 0 && <p class="empty card">Aucun classement disponible pour le moment.</p>}
+  <div class="chips" role="tablist">
+    {comps.map((c, i) => <button class:list={['chip', i === 0 && 'active']} type="button" data-tab={c.slug}>{c.name}</button>)}
+  </div>
+  {comps.map((c, i) => (
+    <section data-panel={c.slug} hidden={i !== 0}>
+      {standings[c.slug].map((g) => {
+        const shown = cols.filter((col) => g.rows.some((r) => r[col.key] !== null));
+        return (
+          <>
+            {g.name && standings[c.slug].length > 1 && <h3>{g.name}</h3>}
+            <div class="card scroll-x" style="margin-top:10px">
+              <table>
+                <thead><tr><th>#</th><th class="l">Équipe</th>{shown.map((col) => <th>{col.label}</th>)}</tr></thead>
+                <tbody>
+                  {g.rows.map((r) => {
+                    const t = team(r.teamId);
+                    return (
+                      <tr data-team={t.id}>
+                        <td>{r.rank}</td>
+                        <td class="l"><a href={teamUrl(t.id)} class="tn"><TeamLogo team={t} /> {t.name}</a></td>
+                        {shown.map((col) => <td class:list={[col.key === 'points' && 'pts']}>{r[col.key] ?? ''}</td>)}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })}
+    </section>
+  ))}
+  <p class="muted small">J joués · G gagnés · N nuls · P perdus · Diff différence de points · Bo points de bonus</p>
+</Layout>
+
+<style>
+  .l { text-align: left; }
+  .tn { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  .tn :global(.logo) { width: 22px; height: 22px; }
+  .pts { font-weight: 800; }
+  tr.fav td { background: var(--accent-soft); }
+</style>
+
+<script>
+  import { getFavorites } from '../scripts/storage';
+  const tabs = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
+  const show = (slug: string) => {
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === slug));
+    document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== slug));
+    history.replaceState(null, '', `#${slug}`);
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab!)));
+  const h = location.hash.slice(1);
+  if (h && document.querySelector(`[data-panel="${h}"]`)) show(h);
+  const favs = getFavorites();
+  document.querySelectorAll<HTMLElement>('tr[data-team]').forEach((tr) => tr.classList.toggle('fav', favs.has(tr.dataset.team!)));
+</script>

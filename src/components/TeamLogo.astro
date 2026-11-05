@@ -1,0 +1,9 @@
+---
+import type { Team } from '../lib/types';
+interface Props { team: Team; size?: 'sm' | 'lg' }
+const { team, size = 'sm' } = Astro.props;
+const px = size === 'lg' ? 64 : 28;
+---
+{team.logo
+  ? <img class:list={['logo', size === 'lg' && 'lg']} src={team.logo} alt="" width={px} height={px} loading="lazy" />
+  : <span class:list={['logo logo-ph', size === 'lg' && 'lg']} style={`width:${px}px;height:${px}px`}>{team.short.slice(0, 3)}</span>}

@@ -1,0 +1,81 @@
+---
+import '../styles/global.css';
+import { meta, url } from '../lib/data';
+
+interface Props {
+  title?: string;
+  active?: 'accueil' | 'calendrier' | 'classements' | 'recherche' | 'reglages';
+}
+const { title, active } = Astro.props;
+const fullTitle = title ? `${title} · Info Rugby` : 'Info Rugby';
+const tabs = [
+  { id: 'accueil', label: 'Accueil', href: url(''), icon: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
+  { id: 'calendrier', label: 'Calendrier', href: url('calendrier/'), icon: 'M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z' },
+  { id: 'classements', label: 'Classements', href: url('classements/'), icon: 'M5 20V10M12 20V4M19 20v-7' },
+  { id: 'recherche', label: 'Recherche', href: url('recherche/'), icon: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM16 16l4.5 4.5' },
+  { id: 'reglages', label: 'Réglages', href: url('reglages/'), icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' },
+];
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content="Calendrier, diffuseurs, scores, résumés et joueurs du rugby à XV." />
+    <meta name="theme-color" content="#0b6b3a" />
+    <link rel="manifest" href={url('manifest.webmanifest')} />
+    <link rel="icon" href={url('icon.svg')} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={url('icon-180.png')} />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Info Rugby" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  </head>
+  <body data-base={import.meta.env.BASE_URL}>
+    <header class="top">
+      <a href={url('')} class="brand">
+        <img src={url('icon.svg')} alt="" width="26" height="26" />
+        <span>Info Rugby</span>
+      </a>
+    </header>
+    <main>
+      <slot />
+      <p class="updated muted small" data-updated={meta.updatedAt ?? ''}>
+        {meta.updatedAt ? 'Données mises à jour récemment' : 'Données pas encore collectées'}
+      </p>
+    </main>
+    <nav class="tabs" aria-label="Navigation principale">
+      {tabs.map((t) => (
+        <a href={t.href} aria-current={active === t.id ? 'page' : undefined}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={t.icon} /></svg>
+          <span>{t.label}</span>
+        </a>
+      ))}
+    </nav>
+    <script>
+      import '../scripts/app';
+    </script>
+  </body>
+</html>
+
+<style>
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.05rem; max-width: 760px; margin: 0 auto; }
+  .updated { text-align: center; margin-top: 30px; }
+  .tabs {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .tabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .68rem; color: var(--muted); padding: 4px 0; }
+  .tabs svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .tabs a[aria-current='page'] { color: var(--accent); font-weight: 700; }
+</style>

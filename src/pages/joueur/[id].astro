@@ -1,0 +1,133 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { STAT_LABELS, age, competitionBySlug, dayShortParis, matchById, matchUrl, meta, playerPosition, playerTeams, players, seasonStats, team, teamUrl } from '../../lib/data';
+import type { ParcoursEntry, Player } from '../../lib/types';
+
+export function getStaticPaths() {
+  return Object.values(players).map((p) => ({ params: { id: p.id }, props: { player: p } }));
+}
+const { player: p } = Astro.props as { player: Player };
+const { club, nation } = playerTeams(p);
+const a = age(p.birthDate);
+const pos = playerPosition(p);
+const s = seasonStats(p);
+const advanced = Object.entries(s.advanced).filter(([k]) => STAT_LABELS[k]);
+const seasonLabel = meta.season.label || '';
+
+// Parcours (frise)
+const thisYear = new Date().getFullYear();
+const parcours: ParcoursEntry[] = (p.wikidata?.parcours ?? []).filter((e) => e.start !== null || e.end !== null);
+const lanes = { clubs: parcours.filter((e) => !e.national), nations: parcours.filter((e) => e.national) };
+const minY = Math.min(...parcours.map((e) => e.start ?? e.end ?? thisYear), thisYear);
+const maxY = thisYear + 1;
+const span = Math.max(1, maxY - minY);
+const pct = (y: number) => ((y - minY) / span) * 100;
+const ticks: number[] = [];
+const step = span > 14 ? 4 : span > 7 ? 2 : 1;
+for (let y = minY; y <= maxY; y += step) ticks.push(y);
+const fmtSpan = (e: ParcoursEntry) => `${e.start ?? '?'} – ${e.end ?? (e.start ? "aujourd'hui" : '?')}`;
+
+const apps = [...p.appearances].reverse();
+---
+<Layout title={p.name}>
+  <section class="head">
+    {p.headshot ? <img class="photo" src={p.headshot} alt="" width="84" height="84" /> : <div class="photo ph">{p.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>}
+    <div>
+      <h1>{p.name}</h1>
+      <p class="muted">{[pos, a !== null ? `${a} ans` : null].filter(Boolean).join(' · ')}</p>
+      <p class="small">
+        {club && <a class="link" href={teamUrl(club.id)}>{club.name}</a>}
+        {club && nation && ' · '}
+        {nation && <a class="link" href={teamUrl(nation.id)}>{nation.name}</a>}
+      </p>
+    </div>
+  </section>
+
+  <h2>Parcours</h2>
+  <section class="card pad">
+    {parcours.length === 0 ? (
+      <div class="timeline">
+        <div class="lane-label">Club</div>
+        <div class="row-bar"><span class="bar now" style="left:0;width:100%">{club?.name ?? team(p.appearances.at(-1)?.teamId ?? '').name}</span></div>
+        <p class="muted small" style="margin:6px 0 0">Saison {seasonLabel}</p>
+      </div>
+    ) : (
+      <div class="timeline">
+        {(['clubs', 'nations'] as const).map((k) => lanes[k].length > 0 && (
+          <>
+            <div class="lane-label">{k === 'clubs' ? 'Clubs' : 'Sélections'}</div>
+            {lanes[k].map((e) => {
+              const st = e.start ?? e.end ?? thisYear;
+              const en = e.end ?? (e.start ? maxY : st + 1);
+              return (
+                <div class="row-bar" title={`${e.team} : ${fmtSpan(e)}`}>
+                  <span class:list={['bar', k === 'nations' && 'nat', e.end === null && 'now']} style={`left:${pct(st)}%;width:${Math.max(pct(en) - pct(st), 6)}%`}></span>
+                  <span class="bar-text"><strong>{e.team}</strong> <span class="muted">{fmtSpan(e)}</span></span>
+                </div>
+              );
+            })}
+          </>
+        ))}
+        <div class="axis">{ticks.map((y) => <span style={`left:${pct(y)}%`}>{y}</span>)}</div>
+        {p.wikidata?.qid && <p class="muted small src">Source : <a class="link" href={`https://www.wikidata.org/wiki/${p.wikidata.qid}`} target="_blank" rel="noopener">Wikidata</a></p>}
+      </div>
+    )}
+  </section>
+
+  <h2>Saison {seasonLabel}</h2>
+  <section class="tiles">
+    <div class="tile card"><b>{s.matches}</b><span>Matchs</span></div>
+    <div class="tile card"><b>{s.starts}</b><span>Titularisations</span></div>
+    <div class="tile card"><b>{s.tries}</b><span>Essais</span></div>
+    <div class="tile card"><b>{s.points}</b><span>Points</span></div>
+    {advanced.map(([k, v]) => <div class="tile card"><b>{Math.round(v)}</b><span>{STAT_LABELS[k]}</span></div>)}
+  </section>
+
+  <h2>Matchs de la saison</h2>
+  <section class="card scroll-x">
+    <table>
+      <thead><tr><th>Match</th><th>Rôle</th><th>Essais</th><th>Pts</th></tr></thead>
+      <tbody>
+        {apps.map((ap) => {
+          const m = matchById.get(ap.matchId);
+          if (!m) return null;
+          const opp = team(m.home.teamId === ap.teamId ? m.away.teamId : m.home.teamId);
+          return (
+            <tr>
+              <td>
+                <a class="link" href={matchUrl(m.id)}>{m.home.teamId === ap.teamId ? 'vs' : '@'} {opp.name}</a>
+                <div class="muted small">{dayShortParis(m.date)} · {competitionBySlug.get(m.competition)?.name} · {m.home.score}-{m.away.score}</div>
+              </td>
+              <td class="muted">{ap.starter ? `Titulaire${ap.jersey ? ` (${ap.jersey})` : ''}` : 'Remplaçant'}</td>
+              <td>{ap.tries || ''}</td>
+              <td>{ap.points || ''}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </section>
+</Layout>
+
+<style>
+  .head { display: flex; gap: 14px; align-items: center; margin: 6px 0; }
+  .head p { margin: 2px 0; }
+  .photo { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; background: var(--surface-2); flex: none; }
+  .ph { display: grid; place-items: center; font-weight: 800; font-size: 1.4rem; color: var(--muted); }
+  .timeline { position: relative; }
+  .lane-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 6px 0 4px; }
+  .row-bar { position: relative; min-height: 40px; margin-bottom: 4px; background: var(--surface-2); border-radius: 8px; overflow: hidden; }
+  .bar { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); border-left: 3px solid var(--accent); display: flex; align-items: center; padding: 0 8px; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+  .bar.nat { border-left-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, transparent); }
+  .bar.now { border-right: 0; }
+  .bar-text { position: relative; display: block; padding: 10px 10px; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .axis { position: relative; height: 18px; margin-top: 4px; font-size: .7rem; color: var(--muted); }
+  .axis span { position: absolute; transform: translateX(-50%); }
+  .axis span:first-child { transform: none; }
+  .src { margin: 10px 0 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .tile { padding: 12px 14px; display: flex; flex-direction: column; }
+  .tile b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--muted); font-size: .8rem; }
+  td:nth-child(2) { font-size: .8rem; }
+</style>

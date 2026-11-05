@@ -1,0 +1,68 @@
+---
+import type { Match } from '../lib/types';
+import TeamLogo from './TeamLogo.astro';
+import { competitionBySlug, dayShortParis, diffusion, matchUrl, team, timeParis } from '../lib/data';
+
+interface Props { match: Match; showDate?: boolean; showCompetition?: boolean }
+const { match: m, showDate = false, showCompetition = true } = Astro.props;
+const home = team(m.home.teamId);
+const away = team(m.away.teamId);
+const d = diffusion(m);
+const comp = competitionBySlug.get(m.competition);
+const final = m.status === 'final';
+const winner = final && m.home.score !== null && m.away.score !== null
+  ? (m.home.score > m.away.score ? 'home' : m.away.score > m.home.score ? 'away' : null) : null;
+---
+<a href={matchUrl(m.id)} class="match card" data-match-id={m.id} data-teams={`${m.home.teamId} ${m.away.teamId}`} data-comp={m.competition} data-date={m.date}>
+  <div class="meta">
+    {showCompetition && <span class="badge">{comp?.name}</span>}
+    {m.round && <span class="muted small">{m.round}</span>}
+  </div>
+  <div class="body">
+    <div class="teams">
+      <div class:list={['t', winner === 'home' && 'win', winner === 'away' && 'lose']}>
+        <TeamLogo team={home} /><span class="name">{home.name}</span>
+        {final && <span class="score">{m.home.score}</span>}
+      </div>
+      <div class:list={['t', winner === 'away' && 'win', winner === 'home' && 'lose']}>
+        <TeamLogo team={away} /><span class="name">{away.name}</span>
+        {final && <span class="score">{m.away.score}</span>}
+      </div>
+    </div>
+    <div class="when">
+      {m.status === 'final' && <span class="state">Terminé</span>}
+      {m.status === 'live' && <span class="state live">En cours</span>}
+      {m.status === 'postponed' && <span class="state">Reporté</span>}
+      {m.status === 'canceled' && <span class="state">Annulé</span>}
+      {m.status === 'scheduled' && <span class="time">{timeParis(m.date)}</span>}
+      {(showDate || final) && <span class="muted small">{dayShortParis(m.date)}</span>}
+    </div>
+  </div>
+  {!final && m.status !== 'canceled' && (
+    <div class="diff muted small" data-diff-id={m.id} data-source={d.source}>
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M3 7h18v11H3zM8 21h8M9 3l3 4 3-4" /></svg>
+      <span class="diff-name">{d.name}</span>
+    </div>
+  )}
+  {final && m.resume && <div class="muted small resume-flag">▶ Résumé disponible</div>}
+</a>
+
+<style>
+  .match { display: block; padding: 10px 14px 12px; }
+  .match:active { transform: scale(.99); }
+  .meta { display: flex; gap: 8px; align-items: baseline; min-height: 18px; margin-bottom: 4px; }
+  .body { display: flex; align-items: center; gap: 12px; }
+  .teams { flex: 1; min-width: 0; display: grid; gap: 6px; }
+  .t { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .t .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t .score { font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+  .t.lose { color: var(--muted); font-weight: 500; }
+  .when { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 64px; text-align: right; border-left: 1px solid var(--border); padding-left: 12px; }
+  .time { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  .state { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .state.live { color: var(--live); }
+  .diff { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .diff svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex: none; }
+  .diff[data-source='gemini'] .diff-name, .diff[data-source='correction'] .diff-name { color: var(--text); font-weight: 600; }
+  .resume-flag { margin-top: 6px; color: var(--accent); }
+</style>

@@ -1,0 +1,13 @@
+{
+  "_doc": "Compétitions suivies. espnId : identifiant de ligue ESPN (laisser vide pour une découverte automatique via 'match'). diffusion : Règle de diffusion (Diffuseur habituel en France). national : compétition entre sélections.",
+  "competitions": [
+    { "slug": "top14", "name": "Top 14", "espnId": "270559", "match": ["top 14"], "exclude": [], "national": false, "diffusion": "Canal+" },
+    { "slug": "prod2", "name": "Pro D2", "espnId": "", "match": ["pro d2", "prod2"], "exclude": [], "national": false, "diffusion": "Canal+ Sport / Rugby+" },
+    { "slug": "champions-cup", "name": "Champions Cup", "espnId": "271937", "match": ["champions cup"], "exclude": ["women"], "national": false, "diffusion": "France TV / beIN Sports" },
+    { "slug": "challenge-cup", "name": "Challenge Cup", "espnId": "272073", "match": ["challenge cup"], "exclude": ["women"], "national": false, "diffusion": "beIN Sports" },
+    { "slug": "six-nations", "name": "Six Nations", "espnId": "180659", "match": ["six nations"], "exclude": ["women", "u20", "under", "a "], "national": true, "diffusion": "France 2 / TF1" },
+    { "slug": "tests", "name": "Tests internationaux", "espnId": "", "match": ["international test", "test match", "internationals"], "exclude": ["women", "u20", "sevens"], "national": true, "diffusion": "TF1 (matchs de la France) / beIN Sports" },
+    { "slug": "rugby-championship", "name": "Rugby Championship", "espnId": "244293", "match": ["rugby championship"], "exclude": ["women", "u20"], "national": true, "diffusion": "beIN Sports" },
+    { "slug": "coupe-du-monde", "name": "Coupe du monde", "espnId": "164205", "match": ["rugby world cup"], "exclude": ["women", "sevens", "u20", "qualif"], "national": true, "diffusion": "TF1 / France TV" }
+  ]
+}

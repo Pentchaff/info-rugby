@@ -1,0 +1,4 @@
+{
+  "_doc": "Corrections de diffusion : identifiant du match (affiché en bas de la page match) -> Diffuseur. L'emporte sur tout le reste. Exemple : \"401234567\": \"France 2\"",
+  "corrections": {}
+}

@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MatchCard from '../components/MatchCard.astro';
+import { competitions, dayKey, dayParis, matches, teams } from '../lib/data';
+import type { Match } from '../lib/types';
+
+const today = dayKey(new Date().toISOString());
+const groups = new Map<string, { label: string; items: Match[] }>();
+for (const m of matches) {
+  const k = dayKey(m.date);
+  const g = groups.get(k) ?? { label: dayParis(m.date), items: [] };
+  g.items.push(m);
+  groups.set(k, g);
+}
+const used = new Set(matches.map((m) => m.competition));
+const comps = competitions.filter((c) => used.has(c.slug));
+const teamList = Object.values(teams).filter((t) => matches.some((m) => m.home.teamId === t.id || m.away.teamId === t.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+const pastCount = [...groups.keys()].filter((k) => k < today).length;
+---
+<Layout title="Calendrier" active="calendrier">
+  <h1>Calendrier</h1>
+  <p class="muted small">Saison en cours · heures de Paris</p>
+  <div class="filters">
+    <select id="f-comp" aria-label="Compétition">
+      <option value="">Toutes les compétitions</option>
+      {comps.map((c) => <option value={c.slug}>{c.name}</option>)}
+    </select>
+    <select id="f-team" aria-label="Équipe">
+      <option value="">Toutes les équipes</option>
+      {teamList.map((t) => <option value={t.id}>{t.name}</option>)}
+    </select>
+  </div>
+  {pastCount > 0 && <button class="btn small" id="toggle-past" type="button">Afficher les matchs passés</button>}
+  {matches.length === 0 && <p class="empty card">Le calendrier n'a pas encore été collecté.</p>}
+  <div id="days">
+    {[...groups.entries()].map(([k, g]) => (
+      <section class="day" data-day={k} data-past={k < today ? '1' : undefined} hidden={k < today}>
+        <h3>{g.label}</h3>
+        <div class="stack">{g.items.map((m) => <MatchCard match={m} />)}</div>
+      </section>
+    ))}
+  </div>
+  <p class="empty card" id="none" hidden>Aucun match pour ce filtre.</p>
+</Layout>
+
+<style>
+  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+  #toggle-past { margin-bottom: 4px; }
+</style>
+
+<script>
+  import { getFavorites } from '../scripts/storage';
+  const comp = document.getElementById('f-comp') as HTMLSelectElement;
+  const team = document.getElementById('f-team') as HTMLSelectElement;
+  const toggle = document.getElementById('toggle-past');
+  let showPast = false;
+  const params = new URLSearchParams(location.search);
+  if (params.get('equipe')) team.value = params.get('equipe')!;
+  if (params.get('competition')) comp.value = params.get('competition')!;
+
+  function apply() {
+    let visible = 0;
+    document.querySelectorAll<HTMLElement>('.day').forEach((day) => {
+      let n = 0;
+      day.querySelectorAll<HTMLElement>('[data-match-id]').forEach((card) => {
+        const ok = (!comp.value || card.dataset.comp === comp.value) && (!team.value || card.dataset.teams!.split(' ').includes(team.value));
+        card.hidden = !ok;
+        if (ok) n++;
+      });
+      day.hidden = n === 0 || (!showPast && day.dataset.past === '1');
+      if (!day.hidden) visible++;
+    });
+    document.getElementById('none')!.hidden = visible > 0 || document.querySelectorAll('.day').length === 0;
+  }
+  comp.addEventListener('change', apply);
+  team.addEventListener('change', apply);
+  toggle?.addEventListener('click', () => {
+    showPast = !showPast;
+    toggle.textContent = showPast ? 'Masquer les matchs passés' : 'Afficher les matchs passés';
+    apply();
+  });
+  // Favoris en tête de la liste des équipes
+  const favs = getFavorites();
+  if (favs.size) {
+    const group = document.createElement('optgroup');
+    group.label = 'Mes équipes';
+    [...team.options].filter((o) => favs.has(o.value)).forEach((o) => group.appendChild(o.cloneNode(true)));
+    team.insertBefore(group, team.options[1]);
+  }
+  apply();
+</script>

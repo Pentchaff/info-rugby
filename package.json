@@ -1,0 +1,21 @@
+{
+  "name": "info-rugby",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "collect": "tsx collector/index.ts",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "astro": "5.18.2"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "@types/node": "22.10.2"
+  }
+}
