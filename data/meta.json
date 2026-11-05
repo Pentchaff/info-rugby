@@ -1,0 +1,26 @@
+{
+  "updatedAt": "2026-11-05T20:10:33.675Z",
+  "lastFullAt": "2026-11-05T20:10:33.675Z",
+  "season": {
+    "start": "2026-08-01T00:00:00.000Z",
+    "end": "2027-07-31T23:59:00.000Z",
+    "label": "2026-27"
+  },
+  "leagues": {},
+  "youtubeChannels": {},
+  "errors": [
+    "prod2: aucune ligue ESPN trouvée",
+    "matchs top14 (270559): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/270559/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs champions-cup (271937): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/271937/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs challenge-cup (272073): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/272073/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs six-nations (180659): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/180659/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs tests (10659): HTTP 404 https://site.api.espn.com/apis/site/v2/sports/rugby/10659/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs rugby-championship (244293): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/244293/scoreboard?dates=20260801-20270731&limit=1000",
+    "matchs coupe-du-monde (164205): HTTP 400 https://site.api.espn.com/apis/site/v2/sports/rugby/164205/scoreboard?dates=20260801-20270731&limit=1000"
+  ],
+  "lastRun": {
+    "mode": "full",
+    "at": "2026-11-05T20:10:33.675Z",
+    "durationSec": 2
+  }
+}
