@@ -1,5 +1,5 @@
 {
-  "_doc": "Noms français et alias (pour reconnaître les équipes dans les titres de vidéos). Clé = nom ESPN (en minuscules, sans accents).",
+  "_doc": "Noms français, alias (pour reconnaître les équipes dans les titres de vidéos) et logo forcé facultatif (champ logo : URL d'une image). Clé = nom ESPN (en minuscules, sans accents).",
   "teams": {
     "france": { "fr": "France", "aliases": ["france", "xv de france", "les bleus"] },
     "ireland": { "fr": "Irlande", "aliases": ["irlande", "ireland"] },

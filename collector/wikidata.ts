@@ -80,3 +80,12 @@ export function chooseCandidate(cands: Candidate[], knownTeams: string[]): Candi
   const ranked = [...cands].sort((a, b) => score(b) - score(a) || (b.parcours.at(-1)?.start ?? 0) - (a.parcours.at(-1)?.start ?? 0));
   return score(ranked[0]) > 0 ? ranked[0] : null;
 }
+
+/** Logo (Wikimedia Commons) d'un club de rugby à XV, cherché par libellé exact. */
+export async function lookupClubLogo(names: string[]): Promise<string | null> {
+  const values = [...new Set(names)].flatMap((n) => [`"${esc(n)}"@fr`, `"${esc(n)}"@en`]).join(' ');
+  const query = `SELECT ?item ?logo WHERE { VALUES ?name { ${values} } ?item rdfs:label ?name ; wdt:P154 ?logo . ?item wdt:P641 wd:Q5849 . } LIMIT 5`;
+  const j = await fetchJson(`${ENDPOINT}?format=json&query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/sparql-results+json' } });
+  const v: string | undefined = j?.results?.bindings?.[0]?.logo?.value;
+  return v ? `${v.replace(/^http:/, 'https:')}?width=128` : null;
+}

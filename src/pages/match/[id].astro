@@ -2,8 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import TeamLogo from '../../components/TeamLogo.astro';
 import { competitionBySlug, dayParis, matchById, diffusion, matches, playerUrl, players, positionFr, standings, team, teamUrl, timeParis, url } from '../../lib/data';
-import { applyOutcomes, rankOf, type Outcome } from '../../lib/standings';
-import { placeTone } from '../../lib/rules';
+import StakesTable from '../../components/StakesTable.astro';
+import { currentRank, ord } from '../../lib/stakes';
 import type { LineupEntry, Match } from '../../lib/types';
 
 export function getStaticPaths() {
@@ -24,40 +24,13 @@ const editUrl = 'https://github.com/Pentchaff/info-rugby/edit/main/config/correc
 const watchUrl = m.resume ? `https://www.youtube.com/watch?v=${m.resume.videoId}` : null;
 const isCanal = /canal/i.test(d.name);
 
-// Enjeu au classement : rang des deux équipes selon le résultat (les autres matchs restant non joués).
-const group = m.status === 'scheduled'
-  ? (standings[m.competition] ?? []).find((g) => g.rows.some((r) => r.teamId === home.id) && g.rows.some((r) => r.teamId === away.id))
-  : undefined;
-const stakes = group && group.rows.every((r) => r.points !== null)
-  ? (() => {
-      const base = group.rows.map((r) => ({ teamId: r.teamId, points: r.points ?? 0, diff: r.diff ?? 0, played: r.played ?? 0 }));
-      const now = rankOf(base);
-      const scen: { outcome: Outcome; label: string }[] = [
-        { outcome: 'homeBonus', label: `${home.name} gagne avec le bonus offensif` },
-        { outcome: 'home', label: `${home.name} gagne` },
-        { outcome: 'homeClose', label: `${home.name} gagne, ${away.name} prend le bonus défensif` },
-        { outcome: 'draw', label: 'Match nul' },
-        { outcome: 'awayClose', label: `${away.name} gagne, ${home.name} prend le bonus défensif` },
-        { outcome: 'away', label: `${away.name} gagne` },
-        { outcome: 'awayBonus', label: `${away.name} gagne avec le bonus offensif` },
-      ];
-      return {
-        now: { home: now.get(home.id)!, away: now.get(away.id)! },
-        total: base.length,
-        rows: scen.map((sc) => {
-          const r = rankOf(applyOutcomes(base, [{ home: home.id, away: away.id, outcome: sc.outcome }]));
-          return { ...sc, home: r.get(home.id)!, away: r.get(away.id)! };
-        }),
-      };
-    })()
-  : null;
-const delta = (now: number, next: number) => (next < now ? `▲${now - next}` : next > now ? `▼${next - now}` : '=');
-const ord = (n: number) => (n === 1 ? '1er' : `${n}e`);
+const rankH = currentRank(m.competition, home.id);
+const rankA = currentRank(m.competition, away.id);
 ---
 <Layout title={`${home.name} - ${away.name}`}>
   <p class="badge">{comp?.name}{m.round ? ` · ${m.round}` : ''}</p>
   <section class="card pad head">
-    <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong></a>
+    <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong>{rankH && <span class="muted small">{ord(rankH)} {comp?.name}</span>}</a>
     <div class="center">
       {final || m.status === 'live'
         ? <div class="big">{m.home.score ?? '–'} <span class="muted">-</span> {m.away.score ?? '–'}</div>
@@ -68,9 +41,11 @@ const ord = (n: number) => (n === 1 ? '1er' : `${n}e`);
       {m.status === 'postponed' && <div class="state">Reporté</div>}
       {m.status === 'canceled' && <div class="state">Annulé</div>}
     </div>
-    <a href={teamUrl(away.id)} class="side"><TeamLogo team={away} size="lg" /><strong>{away.name}</strong></a>
+    <a href={teamUrl(away.id)} class="side"><TeamLogo team={away} size="lg" /><strong>{away.name}</strong>{rankA && <span class="muted small">{ord(rankA)} {comp?.name}</span>}</a>
   </section>
   {m.venue && <p class="muted small center-text">📍 {m.venue}</p>}
+
+  <StakesTable match={m} />
 
   <h2>Où regarder</h2>
   <section class="card pad">
@@ -83,33 +58,6 @@ const ord = (n: number) => (n === 1 ? '1er' : `${n}e`);
     <div id="diff-sources" class="small"></div>
     <div id="diff-suggestions"></div>
   </section>
-
-  {stakes && (
-    <>
-      <h2>Enjeu au classement</h2>
-      <section class="card scroll-x">
-        <table class="stakes">
-          <thead>
-            <tr><th>Si…</th><th>{home.short}</th><th>{away.short}</th></tr>
-          </thead>
-          <tbody>
-            <tr class="now"><td>Aujourd'hui</td><td>{ord(stakes.now.home)}</td><td>{ord(stakes.now.away)}</td></tr>
-            {stakes.rows.map((r) => (
-              <tr>
-                <td>{r.label}</td>
-                <td class:list={['rk', placeTone(m.competition, r.home, stakes.total)]}>{ord(r.home)} <span class="dl">{delta(stakes.now.home, r.home)}</span></td>
-                <td class:list={['rk', placeTone(m.competition, r.away, stakes.total)]}>{ord(r.away)} <span class="dl">{delta(stakes.now.away, r.away)}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-      <p class="muted small">
-        Places{group?.name && (standings[m.competition]?.length ?? 0) > 1 ? ` dans la ${group.name.toLowerCase().replace('pool', 'poule')}` : ''}, si les autres matchs de la journée ne sont pas encore joués. Égalités départagées à la différence de points (simplifié).
-        <a class="link" href={url(`classements/#${m.competition}`)}>Simuler toute la journée →</a>
-      </p>
-    </>
-  )}
 
   {final && (
     <>
@@ -206,12 +154,6 @@ const ord = (n: number) => (n === 1 ? '1er' : `${n}e`);
   .lineup .pos { grid-column: 2; font-size: .75rem; }
   .bench-title { margin: 10px 0 2px; }
   #diff-sources a { color: var(--accent); }
-  .stakes td:first-child { font-size: .84rem; }
-  .stakes .now td { font-weight: 700; background: var(--surface-2); }
-  .stakes .rk { white-space: nowrap; font-weight: 600; }
-  .stakes .dl { font-size: .75rem; color: var(--muted); font-weight: 500; }
-  .stakes .up { color: var(--win); }
-  .stakes .down { color: var(--live); }
   @media (max-width: 420px) { .two { grid-template-columns: 1fr; } }
 </style>
 

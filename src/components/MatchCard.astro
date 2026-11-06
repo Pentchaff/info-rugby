@@ -2,6 +2,7 @@
 import type { Match } from '../lib/types';
 import TeamLogo from './TeamLogo.astro';
 import { competitionBySlug, dayShortParis, diffusion, matchUrl, team, timeParis } from '../lib/data';
+import { groupOf, currentRank, ord } from '../lib/stakes';
 
 interface Props { match: Match; showDate?: boolean; showCompetition?: boolean }
 const { match: m, showDate = false, showCompetition = true } = Astro.props;
@@ -10,6 +11,9 @@ const away = team(m.away.teamId);
 const d = diffusion(m);
 const comp = competitionBySlug.get(m.competition);
 const final = m.status === 'final';
+const showRanks = m.status === 'scheduled' && !!groupOf(m);
+const rH = showRanks ? currentRank(m.competition, m.home.teamId) : null;
+const rA = showRanks ? currentRank(m.competition, m.away.teamId) : null;
 const winner = final && m.home.score !== null && m.away.score !== null
   ? (m.home.score > m.away.score ? 'home' : m.away.score > m.home.score ? 'away' : null) : null;
 ---
@@ -21,11 +25,11 @@ const winner = final && m.home.score !== null && m.away.score !== null
   <div class="body">
     <div class="teams">
       <div class:list={['t', winner === 'home' && 'win', winner === 'away' && 'lose']}>
-        <TeamLogo team={home} /><span class="name">{home.name}</span>
+        <TeamLogo team={home} /><span class="name">{home.name}{rH && <span class="rank"> {ord(rH)}</span>}</span>
         {final && <span class="score">{m.home.score}</span>}
       </div>
       <div class:list={['t', winner === 'away' && 'win', winner === 'home' && 'lose']}>
-        <TeamLogo team={away} /><span class="name">{away.name}</span>
+        <TeamLogo team={away} /><span class="name">{away.name}{rA && <span class="rank"> {ord(rA)}</span>}</span>
         {final && <span class="score">{m.away.score}</span>}
       </div>
     </div>
@@ -57,6 +61,7 @@ const winner = final && m.home.score !== null && m.away.score !== null
   .t .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .t .score { font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
   .t.lose { color: var(--muted); font-weight: 500; }
+  .rank { color: var(--muted); font-weight: 500; font-size: .78rem; }
   .when { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 64px; text-align: right; border-left: 1px solid var(--border); padding-left: 12px; }
   .time { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
   .state { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }

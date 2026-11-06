@@ -3,9 +3,9 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as espn from './espn.ts';
-import { chooseCandidate, lookupParcours, normName } from './wikidata.ts';
+import { chooseCandidate, lookupClubLogo, lookupParcours, normName } from './wikidata.ts';
 import { fetchFeed, isEmbeddable, resolveChannelId, titleMatches, type FeedVideo } from './youtube.ts';
-import { pool } from './http.ts';
+import { exists, pool } from './http.ts';
 import { playingTime } from './minutes.ts';
 import type { CompetitionConfig, Match, Meta, Player, StandingGroup, Team } from '../src/lib/types.ts';
 
@@ -157,7 +157,9 @@ function upsertTeam(t: espn.RawTeam, comp: CompetitionConfig) {
     espnName: t.name,
     name: teamName(t.name),
     short: t.short,
-    logo: t.logo ?? cur?.logo ?? null,
+    // ESPN donne parfois un drapeau pour un club (Perpignan « USA » → drapeau américain) : rejeté.
+    logo: cur?.logoCheckedAt ? cur.logo : (t.logo && !(comp.national === false && /\/countries\//.test(t.logo)) ? t.logo : cur?.logo ?? null),
+    logoCheckedAt: cur?.logoCheckedAt,
     national: comp.national,
     competitions: [...new Set([...(cur?.competitions ?? []), comp.slug])].sort(),
   };
@@ -416,6 +418,37 @@ async function collectParcours() {
   }
 }
 
+// ---------- Logos ----------
+
+/**
+ * Vérifie les logos des clubs : l'URL ESPN doit exister et ne pas être un drapeau.
+ * Sinon : logo ESPN standard du club, puis logo Wikimedia (Wikidata). Revérifié tous les 30 jours.
+ */
+async function collectLogos() {
+  const todo = Object.values(teams).filter(
+    (t) => !t.national && (!t.logoCheckedAt || now.getTime() - new Date(t.logoCheckedAt).getTime() > 30 * D),
+  );
+  log(`logos à vérifier : ${todo.length}`);
+  await pool(todo, 6, async (t) => {
+    const espnStd = `https://a.espncdn.com/i/teamlogos/rugby/teams/500/${t.id}.png`;
+    let logo: string | null = null;
+    if (t.logo && !/\/countries\//.test(t.logo) && (await exists(t.logo))) logo = t.logo;
+    else if (await exists(espnStd)) logo = espnStd;
+    else {
+      try {
+        const conf = teamNames[normName(t.espnName)];
+        logo = await lookupClubLogo([t.name, t.espnName, ...(conf ? [conf.fr, ...conf.aliases] : [])]);
+      } catch (e) {
+        fail(`logo Wikidata ${t.name}`, e);
+        return;
+      }
+    }
+    t.logo = logo;
+    t.logoCheckedAt = now.toISOString();
+    if (!logo) log(`pas de logo trouvé pour ${t.name} (${t.id})`);
+  });
+}
+
 // ---------- Classements ----------
 
 async function collectStandings(leagues: Map<string, string>) {
@@ -507,6 +540,7 @@ async function main() {
   if (mode === 'full') {
     await collectEvents(leagues, 'full');
     await collectStandings(leagues);
+    await collectLogos();
   } else {
     await collectEvents(leagues, 'light');
   }

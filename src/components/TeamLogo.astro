@@ -3,7 +3,8 @@ import type { Team } from '../lib/types';
 interface Props { team: Team; size?: 'sm' | 'lg' }
 const { team, size = 'sm' } = Astro.props;
 const px = size === 'lg' ? 64 : 28;
+const initials = team.short.slice(0, 3);
 ---
 {team.logo
-  ? <img class:list={['logo', size === 'lg' && 'lg']} src={team.logo} alt="" width={px} height={px} loading="lazy" onerror="this.style.visibility='hidden'" />
-  : <span class:list={['logo logo-ph', size === 'lg' && 'lg']} style={`width:${px}px;height:${px}px`}>{team.short.slice(0, 3)}</span>}
+  ? <img class:list={['logo', size === 'lg' && 'lg']} src={team.logo} alt="" width={px} height={px} loading="lazy" data-initials={initials} onerror="var s=document.createElement('span');s.className=this.className+' logo-ph';s.style.width=s.style.height=this.width+'px';s.textContent=this.dataset.initials;this.replaceWith(s)" />
+  : <span class:list={['logo logo-ph', size === 'lg' && 'lg']} style={`width:${px}px;height:${px}px`}>{initials}</span>}

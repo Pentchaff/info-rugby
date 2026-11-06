@@ -54,6 +54,7 @@ export interface Team {
   espnName: string;
   short: string;
   logo: string | null;
+  logoCheckedAt?: string; // logo vérifié (ou remplacé) par le collecteur
   national: boolean;
   competitions: string[];
 }

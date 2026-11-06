@@ -22,6 +22,14 @@ export const matches: Match[] = read<Match[]>(DATA, 'matches.json', []).filter(
   (m) => competitions.some((c) => c.slug === m.competition) && m.date >= SEASON_START && !((m.status === 'scheduled' || m.status === 'live') && new Date(m.date).getTime() < STALE),
 );
 export const teams: Record<string, Team> = read(DATA, 'teams.json', {});
+// Logos forcés à la main : config/teams.json, champ « logo » (clé = nom ESPN en minuscules sans accents).
+const teamConfig: Record<string, { fr: string; logo?: string }> = read(join(ROOT, 'config'), 'teams.json', { teams: {} as Record<string, { fr: string; logo?: string }> }).teams;
+const keyOf = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+for (const t of Object.values(teams)) {
+  const override = teamConfig[keyOf(t.espnName)]?.logo;
+  if (override) t.logo = override;
+  else if (!t.national && t.logo && /\/countries\//.test(t.logo)) t.logo = null; // drapeau à la place d'un logo de club
+}
 export const players: Record<string, Player> = read(DATA, 'players.json', {});
 export const standings: Record<string, StandingGroup[]> = read(DATA, 'standings.json', {});
 export const meta: Meta = read<Meta>(DATA, 'meta.json', {

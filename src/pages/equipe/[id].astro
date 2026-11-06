@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import MatchCard from '../../components/MatchCard.astro';
 import TeamLogo from '../../components/TeamLogo.astro';
+import StakesTable from '../../components/StakesTable.astro';
 import { competitionBySlug, matchById, matches, playerPosition, playerUrl, players, teams, url } from '../../lib/data';
 import type { Team } from '../../lib/types';
 
@@ -39,6 +40,8 @@ squad.sort((a, b) => {
   {next.length === 0 && <p class="empty card">Aucun match programmé.</p>}
   <div class="stack">{next.map((m) => <MatchCard match={m} showDate />)}</div>
   {own.length > 5 && <p class="small"><a class="link" href={url(`calendrier/?equipe=${t.id}`)}>Tout le calendrier de l'équipe →</a></p>}
+
+  {next[0] && <StakesTable match={next[0]} title="Enjeu du prochain match" />}
 
   <h2>Derniers résultats</h2>
   {last.length === 0 && <p class="empty card">Pas encore de résultat cette saison.</p>}

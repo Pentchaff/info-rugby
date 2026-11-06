@@ -27,6 +27,16 @@ export async function fetchText(url: string, init: RequestInit = {}, retries = 2
   throw lastErr;
 }
 
+/** true si l'URL répond 200 (image existante). */
+export async function exists(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: 'HEAD', headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchJson<T = any>(url: string, init: RequestInit = {}): Promise<T> {
   return JSON.parse(await fetchText(url, init)) as T;
 }

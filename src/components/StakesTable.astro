@@ -1,0 +1,48 @@
+---
+import { team, url } from '../lib/data';
+import { placeTone } from '../lib/rules';
+import { matchStakes, ord } from '../lib/stakes';
+import type { Match } from '../lib/types';
+
+interface Props { match: Match; title?: string }
+const { match: m, title = 'Enjeu au classement' } = Astro.props;
+const stakes = matchStakes(m);
+const home = team(m.home.teamId);
+const away = team(m.away.teamId);
+const delta = (now: number, next: number) => (next < now ? `▲${now - next}` : next > now ? `▼${next - now}` : '=');
+---
+{stakes && (
+  <>
+    <h2>{title}</h2>
+    <section class="card scroll-x">
+      <table class="stakes">
+        <thead>
+          <tr><th>Si…</th><th>{home.short}</th><th>{away.short}</th></tr>
+        </thead>
+        <tbody>
+          <tr class="now"><td>Aujourd'hui</td><td>{ord(stakes.now.home)}</td><td>{ord(stakes.now.away)}</td></tr>
+          {stakes.rows.map((r) => (
+            <tr>
+              <td>{r.label}</td>
+              <td class:list={['rk', placeTone(m.competition, r.home, stakes.total)]}>{ord(r.home)} <span class="dl">{delta(stakes.now.home, r.home)}</span></td>
+              <td class:list={['rk', placeTone(m.competition, r.away, stakes.total)]}>{ord(r.away)} <span class="dl">{delta(stakes.now.away, r.away)}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+    <p class="muted small">
+      Places{stakes.groupName ? ` dans la ${stakes.groupName.toLowerCase().replace('pool', 'poule')}` : ''}, si les autres matchs ne sont pas encore joués. Égalités départagées à la différence de points (simplifié).
+      <a class="link" href={url(`classements/#${m.competition}`)}>Simuler toute la journée →</a>
+    </p>
+  </>
+)}
+
+<style>
+  .stakes td:first-child { font-size: .84rem; }
+  .stakes .now td { font-weight: 700; background: var(--surface-2); }
+  .stakes .rk { white-space: nowrap; font-weight: 600; }
+  .stakes .dl { font-size: .75rem; color: var(--muted); font-weight: 500; }
+  .stakes .up { color: var(--win); }
+  .stakes .down { color: var(--live); }
+</style>
