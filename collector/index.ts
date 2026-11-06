@@ -6,6 +6,7 @@ import * as espn from './espn.ts';
 import { chooseCandidate, lookupParcours, normName } from './wikidata.ts';
 import { fetchFeed, isEmbeddable, resolveChannelId, titleMatches, type FeedVideo } from './youtube.ts';
 import { pool } from './http.ts';
+import { playingTime } from './minutes.ts';
 import type { CompetitionConfig, Match, Meta, Player, StandingGroup, Team } from '../src/lib/types.ts';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -256,9 +257,11 @@ async function collectEvents(leagues: Map<string, string>, mode: 'full' | 'light
 
 // ---------- Feuilles de match et joueurs ----------
 
+const SUMMARY_VERSION = 2; // 2 : temps de jeu, coups de pied et cartons par joueur
+
 function needsSummary(m: Match) {
   if (m.status !== 'final' && m.status !== 'live') return false;
-  if (!m.summaryFetchedAt) return true;
+  if (!m.summaryFetchedAt || (m.summaryVersion ?? 1) < SUMMARY_VERSION) return true;
   // Une seconde lecture quelques heures après le match (stats consolidées).
   const fetched = new Date(m.summaryFetchedAt).getTime();
   const kickoff = new Date(m.date).getTime();
@@ -278,6 +281,7 @@ async function collectSummaries(leagues: Map<string, string>) {
       const s = await espn.fetchSummary(lid, m.id);
       applySummary(m, s);
       m.summaryFetchedAt = now.toISOString();
+      m.summaryVersion = SUMMARY_VERSION;
     } catch (e) {
       fail(`feuille de match ${m.id}`, e);
     }
@@ -296,6 +300,14 @@ function applySummary(m: Match, s: espn.RawSummary) {
     scoringBy.set(sc.playerId, x);
   }
   const scorers: Match['scorers'] = [];
+  const minutes = playingTime(s);
+  const cards = new Map<string, { yellow: number; red: number }>();
+  for (const ev of s.timeline ?? []) {
+    if (ev.kind !== 'yellow' && ev.kind !== 'red') continue;
+    const c = cards.get(ev.playerId) ?? { yellow: 0, red: 0 };
+    c[ev.kind]++;
+    cards.set(ev.playerId, c);
+  }
   for (const r of s.rosters) {
     const side = r.teamId === m.home.teamId ? 'home' : r.teamId === m.away.teamId ? 'away' : r.homeAway;
     if (!side) continue;
@@ -329,7 +341,22 @@ function applySummary(m: Match, s: espn.RawSummary) {
       p.position = e.position ?? p.position;
       p.headshot = e.headshot ?? p.headshot;
       p.appearances = p.appearances.filter((a) => a.matchId !== m.id);
-      if (played) p.appearances.push({ matchId: m.id, teamId, starter: e.starter, jersey: e.jersey, tries, points, stats: advanced });
+      if (played)
+        p.appearances.push({
+          matchId: m.id,
+          teamId,
+          starter: e.starter,
+          jersey: e.jersey,
+          tries,
+          points,
+          stats: advanced,
+          minutes: minutes ? (minutes.get(e.playerId) ?? 0) : null,
+          conversions: e.stats.conversions ?? sc?.conv ?? 0,
+          penalties: e.stats.penalties ?? sc?.pen ?? 0,
+          drops: e.stats.drops ?? sc?.drop ?? 0,
+          yellow: cards.get(e.playerId)?.yellow ?? 0,
+          red: cards.get(e.playerId)?.red ?? 0,
+        });
       p.appearances.sort((a, b) => (byId.get(a.matchId)?.date ?? '').localeCompare(byId.get(b.matchId)?.date ?? ''));
       players[e.playerId] = p;
       if (tries > 0 || points > 0) scorers.push({ playerId: e.playerId, teamId, tries, points });

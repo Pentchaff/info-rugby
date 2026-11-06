@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { STAT_LABELS, age, cleanTeamLabel, competitionBySlug, dayShortParis, matchById, matchUrl, meta, playerPosition, playerTeams, players, seasonStats, team, teamUrl } from '../../lib/data';
 import type { ParcoursEntry, Player } from '../../lib/types';
+import { METRICS, MIN_MATCHES, compare, formatMetric, highlights, positionPlural, ratios } from '../../lib/playerStats';
 
 export function getStaticPaths() {
   return Object.values(players).filter((p) => p.appearances.length > 0).map((p) => ({ params: { id: p.id }, props: { player: p } }));
@@ -37,6 +38,15 @@ const hasParcours = all.length > 0;
 const currentClub = club?.name ?? team(p.appearances.at(-1)?.teamId ?? '').name;
 
 const apps = [...p.appearances].reverse();
+
+// Ratios et comparaison au poste
+const r = ratios(p);
+const cards = METRICS.map((m) => ({ m, v: r[m.key] ?? null, c: compare(p, m, r[m.key] ?? null) })).filter((x) => x.v !== null && !(x.m.onlyNonZero && x.v === 0));
+const brief = highlights(p);
+const minutesTotal = p.appearances.reduce((t, ap) => t + (ap.minutes ?? 0), 0);
+const kicks = p.appearances.reduce((t, ap) => ({ c: t.c + (ap.conversions ?? 0), p: t.p + (ap.penalties ?? 0), d: t.d + (ap.drops ?? 0) }), { c: 0, p: 0, d: 0 });
+const cardCount = p.appearances.reduce((t, ap) => ({ y: t.y + (ap.yellow ?? 0), r: t.r + (ap.red ?? 0) }), { y: 0, r: 0 });
+const smallSample = p.appearances.length < MIN_MATCHES;
 ---
 <Layout title={p.name}>
   <section class="head">
@@ -51,6 +61,13 @@ const apps = [...p.appearances].reverse();
       </p>
     </div>
   </section>
+
+  {brief.length > 0 && (
+    <section class="card pad brief">
+      <p class="badge" style="margin:0 0 6px">En bref</p>
+      <ul>{brief.map((b) => <li>{b}</li>)}</ul>
+    </section>
+  )}
 
   <h2>Parcours</h2>
   <section class="card pad">
@@ -91,13 +108,47 @@ const apps = [...p.appearances].reverse();
     <div class="tile card"><b>{s.starts}</b><span>Titularisations</span></div>
     <div class="tile card"><b>{s.tries}</b><span>Essais</span></div>
     <div class="tile card"><b>{s.points}</b><span>Points</span></div>
+    {minutesTotal > 0 && <div class="tile card"><b>{minutesTotal}</b><span>Minutes jouées</span></div>}
+    {kicks.c + kicks.p + kicks.d > 0 && <div class="tile card"><b>{kicks.c} / {kicks.p}{kicks.d ? ` / ${kicks.d}` : ''}</b><span>Transfo. / pénalités{kicks.d ? ' / drops' : ''}</span></div>}
+    {cardCount.y + cardCount.r > 0 && <div class="tile card"><b>{cardCount.y ? `${cardCount.y} 🟨` : ''} {cardCount.r ? `${cardCount.r} 🟥` : ''}</b><span>Cartons</span></div>}
     {advanced.map(([k, v]) => <div class="tile card"><b>{Math.round(v)}</b><span>{STAT_LABELS[k]}</span></div>)}
   </section>
+
+  {cards.length > 0 && (
+    <>
+      <h2>Ratios et comparaison</h2>
+      <p class="muted small">
+        {pos ? `Comparé aux ${positionPlural(pos)} ayant joué au moins ${MIN_MATCHES} matchs cette saison, toutes compétitions suivies confondues.` : 'Poste inconnu : pas de comparaison possible.'}
+        {smallSample && ' Moins de 3 matchs joués : à prendre avec prudence.'}
+      </p>
+      <section class="ratios">
+        {cards.map(({ m, v, c }) => (
+          <div class="ratio card">
+            <div class="r-top">
+              <span class="r-label">{m.label}</span>
+              <b class="r-val">{formatMetric(m, v!)}</b>
+            </div>
+            {c ? (
+              <>
+                <p class:list={['so', c.tone]}>{c.sentence}</p>
+                <div class="scale" title={`${c.rank}e sur ${c.of}`}>
+                  <span class="avg" style={`left:${100 - ((c.avgRank - 1) / Math.max(1, c.of - 1)) * 100}%`} title="Moyenne du poste"></span>
+                  <span class:list={['pt', c.tone]} style={`left:${Math.max(2, Math.min(98, 100 - ((c.rank - 1) / Math.max(1, c.of - 1)) * 100))}%`}></span>
+                </div>
+                <p class="muted r-rank">{c.rank === 1 ? '1er' : `${c.rank}e`} sur {c.of} · moyenne {formatMetric(m, c.avg)} (trait) · à droite = meilleur</p>
+              </>
+            ) : <p class="muted so">Pas assez de joueurs à ce poste pour comparer.</p>}
+            <details><summary class="muted">Comment c'est calculé ?</summary><p class="muted">{m.help}</p></details>
+          </div>
+        ))}
+      </section>
+    </>
+  )}
 
   <h2>Matchs de la saison</h2>
   <section class="card scroll-x">
     <table>
-      <thead><tr><th>Match</th><th>Rôle</th><th>Essais</th><th>Pts</th></tr></thead>
+      <thead><tr><th>Match</th><th>Rôle</th><th>Min</th><th>Essais</th><th>Pts</th></tr></thead>
       <tbody>
         {apps.map((ap) => {
           const m = matchById.get(ap.matchId);
@@ -110,8 +161,9 @@ const apps = [...p.appearances].reverse();
                 <div class="muted small">{dayShortParis(m.date)} · {competitionBySlug.get(m.competition)?.name} · {m.home.score}-{m.away.score}</div>
               </td>
               <td class="muted">{ap.starter ? `Titulaire${ap.jersey ? ` (${ap.jersey})` : ''}` : 'Remplaçant'}</td>
+              <td class="muted">{typeof ap.minutes === 'number' ? `${ap.minutes}'` : ''}</td>
               <td>{ap.tries || ''}</td>
-              <td>{ap.points || ''}</td>
+              <td>{ap.points || ''}{ap.yellow ? ' 🟨' : ''}{ap.red ? ' 🟥' : ''}</td>
             </tr>
           );
         })}
@@ -144,4 +196,24 @@ const apps = [...p.appearances].reverse();
   .tile b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
   .tile span { color: var(--muted); font-size: .8rem; }
   td:nth-child(2) { font-size: .8rem; }
+  .brief { margin-top: 14px; border-left: 4px solid var(--accent); }
+  .brief ul { margin: 0; padding-left: 18px; }
+  .brief li { margin: 4px 0; font-size: .92rem; }
+  .ratios { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .ratio { padding: 12px 14px; }
+  .r-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .r-label { font-size: .82rem; color: var(--muted); font-weight: 600; }
+  .r-val { font-size: 1.35rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .so { margin: 4px 0 8px; font-weight: 700; font-size: .9rem; }
+  .so.good { color: var(--win); }
+  .so.bad { color: var(--live); }
+  .scale { position: relative; height: 6px; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--live) 35%, var(--surface-2)), var(--surface-2) 50%, color-mix(in srgb, var(--win) 35%, var(--surface-2))); }
+  .scale .avg { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--muted); transform: translateX(-1px); }
+  .scale .pt { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--text); border: 2px solid var(--surface); }
+  .scale .pt.good { background: var(--win); }
+  .scale .pt.bad { background: var(--live); }
+  .r-rank { font-size: .75rem; margin: 8px 0 0; }
+  .ratio details { margin-top: 6px; font-size: .75rem; }
+  .ratio details summary { font-weight: 500; }
+  .ratio details p { margin: 4px 0 0; }
 </style>

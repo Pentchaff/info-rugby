@@ -38,6 +38,8 @@ export interface RawSummary {
   rosters: { teamId: string; homeAway: 'home' | 'away' | null; entries: RawRosterEntry[] }[];
   /** Remplaçants entrés en jeu (null si la chronologie est absente). */
   subbedOn: Set<string> | null;
+  /** Entrées, sorties et cartons, dans l'ordre, avec la minute (null si la chronologie est absente). */
+  timeline: { kind: 'on' | 'off' | 'yellow' | 'red'; playerId: string; minute: number }[] | null;
   scoring: { playerId: string; teamId: string; kind: 'try' | 'conversion' | 'penalty' | 'drop' }[];
 }
 
@@ -245,6 +247,15 @@ export function parseSummary(j: any): RawSummary {
       if (id) subbedOn!.add(String(id));
     }
   }
+  const timeline: NonNullable<RawSummary['timeline']> = [];
+  for (const d of details) {
+    const text = String(d?.type?.text ?? '').toLowerCase();
+    const id = d?.participants?.[0]?.athlete?.id;
+    const sec = num(d?.clock?.value);
+    if (!id || sec === null) continue;
+    const kind = /substitute on/.test(text) ? 'on' : /player substituted/.test(text) ? 'off' : /yellow/.test(text) ? 'yellow' : /red card/.test(text) ? 'red' : null;
+    if (kind) timeline.push({ kind, playerId: String(id), minute: Math.round(sec / 60) });
+  }
   let seq = 0;
   for (const p of plays) {
     seq++;
@@ -262,7 +273,7 @@ export function parseSummary(j: any): RawSummary {
     seen.add(key);
     scoring.push({ playerId: String(ath.id), teamId: String(p?.team?.id ?? ''), kind });
   }
-  return { rosters, scoring, subbedOn };
+  return { rosters, scoring, subbedOn, timeline: details.length ? timeline : null };
 }
 
 // ---------- Classements ----------

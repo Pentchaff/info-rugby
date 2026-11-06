@@ -42,6 +42,7 @@ export interface Match {
   lineups: { home: LineupEntry[]; away: LineupEntry[] } | null;
   scorers: Scorer[];
   summaryFetchedAt: string | null;
+  summaryVersion?: number;
   resume: Resume | null;
   resumeLastCheck: string | null;
   resumeChecks: number;
@@ -65,6 +66,13 @@ export interface PlayerAppearance {
   tries: number;
   points: number;
   stats: Record<string, number>; // stats avancées si disponibles
+  // Depuis la version 2 des feuilles de match :
+  minutes?: number | null; // temps de jeu reconstitué à partir des remplacements
+  conversions?: number;
+  penalties?: number;
+  drops?: number;
+  yellow?: number;
+  red?: number;
 }
 
 export interface ParcoursEntry {
