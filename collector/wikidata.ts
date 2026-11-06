@@ -83,7 +83,14 @@ export function chooseCandidate(cands: Candidate[], knownTeams: string[]): Candi
 
 /** Logo (Wikimedia Commons) d'un club de rugby à XV, cherché par libellé exact. */
 export async function lookupClubLogo(names: string[]): Promise<string | null> {
-  const values = [...new Set(names)].flatMap((n) => [`"${esc(n)}"@fr`, `"${esc(n)}"@en`]).join(' ');
+  // Les libellés Wikidata sont sensibles à la casse (« Aviron bayonnais ») : on essaie plusieurs variantes.
+  const variants = names.flatMap((n) => {
+    const lower = n.toLowerCase();
+    const cap = lower.charAt(0).toUpperCase() + lower.slice(1);
+    const title = lower.replace(/(^|[\s-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
+    return [n, cap, title];
+  });
+  const values = [...new Set(variants)].flatMap((n) => [`"${esc(n)}"@fr`, `"${esc(n)}"@en`]).join(' ');
   const query = `SELECT ?item ?logo WHERE { VALUES ?name { ${values} } ?item rdfs:label ?name ; wdt:P154 ?logo . ?item wdt:P641 wd:Q5849 . } LIMIT 5`;
   const j = await fetchJson(`${ENDPOINT}?format=json&query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/sparql-results+json' } });
   const v: string | undefined = j?.results?.bindings?.[0]?.logo?.value;

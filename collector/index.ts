@@ -426,7 +426,9 @@ async function collectParcours() {
  */
 async function collectLogos() {
   const todo = Object.values(teams).filter(
-    (t) => !t.national && (!t.logoCheckedAt || now.getTime() - new Date(t.logoCheckedAt).getTime() > 30 * D),
+    (t) =>
+      !t.national &&
+      (!t.logoCheckedAt || now.getTime() - new Date(t.logoCheckedAt).getTime() > (t.logo ? 30 * D : 12 * H)),
   );
   log(`logos à vérifier : ${todo.length}`);
   await pool(todo, 6, async (t) => {
