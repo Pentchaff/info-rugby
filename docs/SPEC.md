@@ -139,7 +139,14 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 
 ### Classements
 
-- Un classement par Compétition (avec les poules quand il y en a).
+- Un classement par Compétition (avec les poules quand il y en a), zones colorées (qualification, accession, relégation).
+- « Comment marche ce classement ? » : barème des points, bonus offensif et défensif, ce que donne chaque place, règles d'égalité (`src/lib/rules.ts`).
+- « Et si… ? » : simulateur de la prochaine journée. On choisit le résultat de chaque match, le classement projeté se recalcule (variations de places).
+
+### Enjeu au classement (page match)
+
+- Pour un Match à venir dont les deux équipes sont dans le même classement : place des deux équipes selon chaque résultat possible (victoire avec ou sans bonus, bonus défensif, nul), les autres matchs restant non joués.
+- Départage simplifié : points, puis différence de points actuelle (indiqué à l'écran).
 
 ### Recherche
 

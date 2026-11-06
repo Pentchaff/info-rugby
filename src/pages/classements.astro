@@ -1,13 +1,51 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import TeamLogo from '../components/TeamLogo.astro';
-import { competitions, standings, team, teamUrl } from '../lib/data';
+import { competitions, dayShortParis, matches, standings, team, teamUrl, timeParis } from '../lib/data';
+import { RULES, placeTone } from '../lib/rules';
+import { OUTCOMES } from '../lib/standings';
 import type { StandingRow } from '../lib/types';
 
 const comps = competitions.filter((c) => standings[c.slug]?.length);
 const cols: { key: keyof StandingRow; label: string }[] = [
   { key: 'played', label: 'J' }, { key: 'won', label: 'G' }, { key: 'drawn', label: 'N' }, { key: 'lost', label: 'P' },
   { key: 'diff', label: 'Diff' }, { key: 'bonus', label: 'Bo' }, { key: 'points', label: 'Pts' },
+];
+
+// Prochaine journée : matchs à venir dans les 4 jours suivant le prochain match de la compétition.
+const now = Date.now();
+function nextRound(slug: string) {
+  const groups = standings[slug] ?? [];
+  const inGroup = (id: string) => groups.find((g) => g.rows.some((r) => r.teamId === id));
+  const up = matches.filter((m) => m.competition === slug && m.status === 'scheduled' && new Date(m.date).getTime() > now);
+  if (!up.length) return [];
+  const first = new Date(up[0].date).getTime();
+  return up
+    .filter((m) => new Date(m.date).getTime() < first + 4 * 24 * 3600_000)
+    .filter((m) => inGroup(m.home.teamId) && inGroup(m.home.teamId) === inGroup(m.away.teamId))
+    .map((m) => ({ id: m.id, home: m.home.teamId, away: m.away.teamId, when: `${dayShortParis(m.date)} ${timeParis(m.date)}` }));
+}
+const sim = Object.fromEntries(
+  comps.map((c) => [
+    c.slug,
+    {
+      groups: standings[c.slug].map((g) => ({
+        name: g.name,
+        rows: g.rows.map((r) => ({ teamId: r.teamId, name: team(r.teamId).name, logo: team(r.teamId).logo, points: r.points ?? 0, diff: r.diff ?? 0, played: r.played ?? 0 })),
+      })),
+      matches: nextRound(c.slug),
+    },
+  ]),
+);
+const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] => [
+  ['none', 'Pas encore joué'],
+  ['homeBonus', `${h} gagne + bonus offensif`],
+  ['home', `${h} gagne`],
+  ['homeClose', `${h} gagne, bonus défensif ${a}`],
+  ['draw', 'Match nul'],
+  ['awayClose', `${a} gagne, bonus défensif ${h}`],
+  ['away', `${a} gagne`],
+  ['awayBonus', `${a} gagne + bonus offensif`],
 ];
 ---
 <Layout title="Classements" active="classements">
@@ -16,36 +54,79 @@ const cols: { key: keyof StandingRow; label: string }[] = [
   <div class="chips" role="tablist">
     {comps.map((c, i) => <button class:list={['chip', i === 0 && 'active']} type="button" data-tab={c.slug}>{c.name}</button>)}
   </div>
-  {comps.map((c, i) => (
-    <section data-panel={c.slug} hidden={i !== 0}>
-      {standings[c.slug].map((g) => {
-        const shown = cols.filter((col) => g.rows.some((r) => r[col.key] !== null));
-        return (
-          <>
-            {g.name && standings[c.slug].length > 1 && <h3>{g.name}</h3>}
-            <div class="card scroll-x" style="margin-top:10px">
-              <table>
-                <thead><tr><th>#</th><th class="l">Équipe</th>{shown.map((col) => <th>{col.label}</th>)}</tr></thead>
-                <tbody>
-                  {g.rows.map((r) => {
-                    const t = team(r.teamId);
-                    return (
-                      <tr data-team={t.id}>
-                        <td>{r.rank}</td>
-                        <td class="l"><a href={teamUrl(t.id)} class="tn"><TeamLogo team={t} /> {t.name}</a></td>
-                        {shown.map((col) => <td class:list={[col.key === 'points' && 'pts']}>{r[col.key] ?? ''}</td>)}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+  {comps.map((c, i) => {
+    const rules = RULES[c.slug];
+    const s = sim[c.slug];
+    return (
+      <section data-panel={c.slug} hidden={i !== 0}>
+        {standings[c.slug].map((g) => {
+          const shown = cols.filter((col) => g.rows.some((r) => r[col.key] !== null));
+          return (
+            <>
+              {g.name && standings[c.slug].length > 1 && <h3>{g.name.replace(/^Pool/, 'Poule')}</h3>}
+              <div class="card scroll-x" style="margin-top:10px">
+                <table>
+                  <thead><tr><th>#</th><th class="l">Équipe</th>{shown.map((col) => <th>{col.label}</th>)}</tr></thead>
+                  <tbody>
+                    {g.rows.map((r) => {
+                      const t = team(r.teamId);
+                      return (
+                        <tr data-team={t.id}>
+                          <td class:list={['zone', placeTone(c.slug, r.rank, g.rows.length)]}>{r.rank}</td>
+                          <td class="l"><a href={teamUrl(t.id)} class="tn"><TeamLogo team={t} /> {t.name}</a></td>
+                          {shown.map((col) => <td class:list={[col.key === 'points' && 'pts']}>{r[col.key] ?? ''}</td>)}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })}
+        <p class="muted small">J joués · G gagnés · N nuls · P perdus · Diff différence de points · Bo points de bonus</p>
+
+        {rules && (
+          <details class="card pad explain">
+            <summary>Comment marche ce classement ?</summary>
+            <h3>Points</h3>
+            <ul>{rules.points.map((p) => <li>{p}</li>)}</ul>
+            <h3>Bonus</h3>
+            <ul>{rules.bonus.map((b) => <li>{b}</li>)}</ul>
+            <p class="small muted">Une équipe peut donc prendre au maximum 5 points par match (victoire + bonus offensif).</p>
+            <h3>Ce que donne chaque place</h3>
+            <ul class="places">{rules.places.map((p) => <li><span class:list={['dot', p.tone]}></span><strong>{p.range}</strong> : {p.label}</li>)}</ul>
+            <h3>Égalités</h3>
+            <p class="small">{rules.tiebreak}</p>
+          </details>
+        )}
+
+        {s.matches.length > 0 && (
+          <div class="sim" data-sim={c.slug}>
+            <h2>Et si… ? Prochaine journée</h2>
+            <p class="muted small">Choisissez un résultat pour chaque match : le classement se recalcule.</p>
+            <div class="stack">
+              {s.matches.map((m) => (
+                <div class="card pad sim-match" data-home={m.home} data-away={m.away}>
+                  <div class="sim-teams">
+                    <span class="sim-t"><TeamLogo team={team(m.home)} /> {team(m.home).name}</span>
+                    <span class="muted small">{m.when}</span>
+                    <span class="sim-t r">{team(m.away).name} <TeamLogo team={team(m.away)} /></span>
+                  </div>
+                  <select aria-label={`Résultat ${team(m.home).name} - ${team(m.away).name}`}>
+                    {outcomeLabels(team(m.home).name, team(m.away).name).map(([k, label]) => <option value={k}>{label}</option>)}
+                  </select>
+                </div>
+              ))}
             </div>
-          </>
-        );
-      })}
-    </section>
-  ))}
-  <p class="muted small">J joués · G gagnés · N nuls · P perdus · Diff différence de points · Bo points de bonus</p>
+            <div class="row" style="margin-top:10px"><button class="btn small sim-reset" type="button">Tout remettre à zéro</button></div>
+            <div class="sim-result"></div>
+          </div>
+        )}
+      </section>
+    );
+  })}
+  <script type="application/json" id="sim-data" set:html={JSON.stringify(sim)} />
 </Layout>
 
 <style>
@@ -53,11 +134,39 @@ const cols: { key: keyof StandingRow; label: string }[] = [
   .tn { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
   .tn :global(.logo) { width: 22px; height: 22px; }
   .pts { font-weight: 800; }
-  tr.fav td { background: var(--accent-soft); }
+  .zone { border-left: 3px solid transparent; padding-left: 8px; }
+  .zone.up { border-left-color: var(--win); }
+  .zone.mid { border-left-color: var(--gold); }
+  .zone.down { border-left-color: var(--live); }
+  :global(tr.fav td) { background: var(--accent-soft); }
+  .explain { margin-top: 14px; }
+  .explain h3 { margin: 14px 0 4px; }
+  .explain ul { margin: 0; padding-left: 20px; font-size: .9rem; }
+  .explain li { margin: 3px 0; }
+  .places { list-style: none; padding-left: 0 !important; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; background: var(--border); vertical-align: -1px; }
+  .dot.up { background: var(--win); }
+  .dot.mid { background: var(--gold); }
+  .dot.down { background: var(--live); }
+  .sim-teams { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; font-weight: 600; font-size: .9rem; margin-bottom: 8px; }
+  .sim-t { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .sim-t.r { justify-content: flex-end; text-align: right; }
+  .sim-t :global(.logo) { width: 22px; height: 22px; }
+  :global(.sim-result) { margin-top: 14px; }
+  :global(.sim-result .mv) { font-size: .75rem; font-weight: 700; }
+  :global(.sim-result .mv.up) { color: var(--win); }
+  :global(.sim-result .mv.down) { color: var(--live); }
+  :global(.sim-result tr.changed td) { background: var(--surface-2); }
 </style>
 
 <script>
   import { getFavorites } from '../scripts/storage';
+  import { applyOutcomes, rankOf, type Outcome, type SimRow } from '../lib/standings';
+
+  type Group = { name: string | null; rows: (SimRow & { name: string; logo: string | null })[] };
+  const data = JSON.parse(document.getElementById('sim-data')!.textContent || '{}') as Record<string, { groups: Group[] }>;
+  const favs = getFavorites();
+
   const tabs = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
   const show = (slug: string) => {
     tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === slug));
@@ -67,6 +176,51 @@ const cols: { key: keyof StandingRow; label: string }[] = [
   tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab!)));
   const h = location.hash.slice(1);
   if (h && document.querySelector(`[data-panel="${h}"]`)) show(h);
-  const favs = getFavorites();
   document.querySelectorAll<HTMLElement>('tr[data-team]').forEach((tr) => tr.classList.toggle('fav', favs.has(tr.dataset.team!)));
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  document.querySelectorAll<HTMLElement>('[data-sim]').forEach((box) => {
+    const slug = box.dataset.sim!;
+    const out = box.querySelector<HTMLElement>('.sim-result')!;
+    const selects = [...box.querySelectorAll<HTMLElement>('.sim-match')];
+    function render() {
+      const results = selects.map((el) => ({
+        home: el.dataset.home!,
+        away: el.dataset.away!,
+        outcome: (el.querySelector('select') as HTMLSelectElement).value as Outcome,
+      }));
+      if (results.every((r) => r.outcome === 'none')) {
+        out.innerHTML = '';
+        return;
+      }
+      let html = '<h3>Classement projeté</h3>';
+      for (const g of data[slug].groups) {
+        const before = rankOf(g.rows);
+        const after = applyOutcomes(g.rows, results);
+        const rank = rankOf(after);
+        const sorted = [...after].sort((a, b) => rank.get(a.teamId)! - rank.get(b.teamId)!);
+        const names = new Map(g.rows.map((r) => [r.teamId, r.name]));
+        if (!sorted.some((r) => r.points !== g.rows.find((x) => x.teamId === r.teamId)!.points)) continue;
+        if (data[slug].groups.length > 1 && g.name) html += `<p class="muted small" style="margin:10px 0 4px">${esc(g.name.replace(/^Pool/, 'Poule'))}</p>`;
+        html += '<div class="card scroll-x"><table><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th></th></tr></thead><tbody>';
+        for (const r of sorted) {
+          const b = before.get(r.teamId)!;
+          const a = rank.get(r.teamId)!;
+          const mv = a < b ? `<span class="mv up">▲${b - a}</span>` : a > b ? `<span class="mv down">▼${a - b}</span>` : '';
+          const old = g.rows.find((x) => x.teamId === r.teamId)!;
+          const changed = old.points !== r.points;
+          html += `<tr class="${[changed ? 'changed' : '', favs.has(r.teamId) ? 'fav' : ''].join(' ')}"><td>${a}</td><td style="text-align:left;font-weight:600">${esc(names.get(r.teamId) ?? '?')}</td><td>${r.played}</td><td class="pts"><strong>${r.points}</strong>${changed ? ` <span class="muted small">(+${r.points - old.points})</span>` : ''}</td><td>${mv}</td></tr>`;
+        }
+        html += '</tbody></table></div>';
+      }
+      html += '<p class="muted small">Égalités départagées à la différence de points actuelle (simplifié).</p>';
+      out.innerHTML = html;
+    }
+    box.addEventListener('change', render);
+    box.querySelector('.sim-reset')?.addEventListener('click', () => {
+      box.querySelectorAll('select').forEach((s) => ((s as HTMLSelectElement).value = 'none'));
+      render();
+    });
+  });
 </script>
