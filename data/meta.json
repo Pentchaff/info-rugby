@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-06T13:29:08.100Z",
-  "lastFullAt": "2026-11-06T13:29:08.100Z",
+  "updatedAt": "2026-11-06T21:01:53.957Z",
+  "lastFullAt": "2026-11-06T21:01:53.957Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
     "end": "2027-07-31T23:59:00.000Z",
@@ -25,7 +25,7 @@
     "six-nations": {
       "espnId": "180659",
       "espnName": "Six Nations",
-      "matches": 3
+      "matches": 0
     },
     "nations-championship": {
       "espnId": "17567",
@@ -40,7 +40,7 @@
     "rugby-championship": {
       "espnId": "244293",
       "espnName": "The Rugby Championship",
-      "matches": 2
+      "matches": 0
     },
     "coupe-du-monde": {
       "espnId": "164205",
@@ -55,8 +55,8 @@
   "errors": [],
   "lastRun": {
     "mode": "full",
-    "at": "2026-11-06T13:29:08.100Z",
-    "durationSec": 13
+    "at": "2026-11-06T21:01:53.957Z",
+    "durationSec": 34
   },
   "doneDays": {
     "top14": [
@@ -832,5 +832,5 @@
       "20261103"
     ]
   },
-  "lastFarAt": "2026-11-05T20:23:41.142Z"
+  "lastFarAt": "2026-11-06T21:01:53.957Z"
 }
