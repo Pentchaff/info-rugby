@@ -165,6 +165,8 @@ function upsertTeam(t: espn.RawTeam, comp: CompetitionConfig) {
 
 function applyEvents(c: CompetitionConfig, events: espn.RawEvent[]) {
   for (const e of events) {
+    // Le scoreboard par défaut renvoie parfois la dernière édition (ex. Six Nations de mars) : hors saison, ignoré.
+    if (new Date(e.date) < season.start) continue;
     upsertTeam(e.home.team, c);
     upsertTeam(e.away.team, c);
     const prev = byId.get(e.id);
@@ -515,7 +517,9 @@ async function main() {
   }
   await collectResumes();
 
-  matches = [...byId.values()].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  // Participations à des matchs hors saison (ou disparus) : supprimées.
+  for (const p of Object.values(players)) p.appearances = p.appearances.filter((a) => byId.has(a.matchId) && new Date(byId.get(a.matchId)!.date) >= season.start);
+  matches = [...byId.values()].filter((m) => new Date(m.date) >= season.start).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   for (const slug of Object.keys(meta.leagues)) meta.leagues[slug].matches = matches.filter((m) => m.competition === slug).length;
   meta.updatedAt = now.toISOString();
   if (mode === 'full') meta.lastFullAt = now.toISOString();

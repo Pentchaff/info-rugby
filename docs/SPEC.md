@@ -124,6 +124,9 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 
 - Nom, poste, club actuel, sélection, âge, photo si disponible.
 - **Parcours** : frise chronologique par club et par sélection, avec les saisons. Si Wikidata ne connaît pas le Joueur, la frise montre seulement le club actuel (« depuis la saison X » si connu), sans message d'erreur.
+- **En bref** : les 2 points forts les plus marquants du joueur par rapport à son poste.
+- **Ratios et comparaison** (`src/lib/playerStats.ts`) : minutes par match, essais par 80 min, points par match, points au pied par match (buteurs), part des essais de l'équipe, taux de titularisation, victoires quand il joue, cartons par 80 min. Chaque ratio est comparé à la moyenne des joueurs du même poste ayant joué au moins 3 matchs (« +52 % vs la moyenne des ailiers »), avec son rang et une échelle.
+- Le temps de jeu est reconstitué à partir des remplacements et cartons rouges de la chronologie ESPN.
 - **Stats de saison** :
   - de base, toujours présentes : matchs joués, titularisations, essais, points ;
   - avancées, affichées seulement si la source les fournit : plaquages, mètres parcourus, franchissements, turnovers.

@@ -135,7 +135,10 @@ export function compare(p: Player, metric: MetricDef, value: number | null): Com
   const who = positionPlural(pos);
   let sentence: string;
   let delta = 0;
-  if (avg === 0) {
+  if (!metric.higherIsBetter && value === 0 && avg > 0) {
+    sentence = `aucun, contre ${formatMetric(metric, avg)} en moyenne chez les ${who}`;
+    delta = -1;
+  } else if (avg === 0) {
     sentence = value === 0 ? `comme la plupart des ${who}` : `alors que la moyenne des ${who} est à 0`;
   } else {
     delta = (value - avg) / avg;
@@ -158,11 +161,11 @@ export function formatMetric(m: MetricDef, v: number): string {
 export function highlights(p: Player): string[] {
   const r = ratios(p);
   const pos = playerPosition(p);
-  if (!pos || p.appearances.length < MIN_MATCHES) return [];
+  if (!pos || p.appearances.filter((a) => matchById.has(a.matchId)).length < MIN_MATCHES) return [];
   const out: { score: number; text: string }[] = [];
   for (const m of METRICS) {
     const c = compare(p, m, r[m.key] ?? null);
-    if (!c || c.tone !== 'good' || c.of < 8) continue;
+    if (!c || c.tone !== 'good' || c.of < 8 || !m.higherIsBetter) continue;
     const top = c.rank / c.of;
     if (top > 0.25 && Math.abs(c.delta) < 0.4) continue;
     const place = c.rank <= 3 ? `${c.rank === 1 ? '1er' : `${c.rank}e`} sur ${c.of} ${positionPlural(pos)}` : `top ${Math.max(1, Math.round(top * 100))} % des ${positionPlural(pos)}`;

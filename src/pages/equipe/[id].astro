@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import MatchCard from '../../components/MatchCard.astro';
 import TeamLogo from '../../components/TeamLogo.astro';
-import { competitionBySlug, matches, playerPosition, playerUrl, players, teams, url } from '../../lib/data';
+import { competitionBySlug, matchById, matches, playerPosition, playerUrl, players, teams, url } from '../../lib/data';
 import type { Team } from '../../lib/types';
 
 export function getStaticPaths() {
@@ -15,7 +15,7 @@ const last = own.filter((m) => m.status === 'final').reverse().slice(0, 10);
 
 const squad = Object.values(players)
   .map((p) => {
-    const apps = p.appearances.filter((a) => a.teamId === t.id);
+    const apps = p.appearances.filter((a) => a.teamId === t.id && matchById.has(a.matchId));
     return { p, n: apps.length, tries: apps.reduce((s, a) => s + a.tries, 0), pos: playerPosition(p) };
   })
   .filter((x) => x.n > 0);

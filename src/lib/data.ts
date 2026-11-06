@@ -17,8 +17,9 @@ export const corrections: Record<string, string> = read(join(ROOT, 'config'), 'c
 
 // ESPN renvoie parfois des doublons fantômes restés « programmés » après leur date : on les masque.
 const STALE = Date.now() - 48 * 3600_000;
+const SEASON_START = (read<Meta | null>(DATA, 'meta.json', null))?.season?.start || '0000';
 export const matches: Match[] = read<Match[]>(DATA, 'matches.json', []).filter(
-  (m) => competitions.some((c) => c.slug === m.competition) && !((m.status === 'scheduled' || m.status === 'live') && new Date(m.date).getTime() < STALE),
+  (m) => competitions.some((c) => c.slug === m.competition) && m.date >= SEASON_START && !((m.status === 'scheduled' || m.status === 'live') && new Date(m.date).getTime() < STALE),
 );
 export const teams: Record<string, Team> = read(DATA, 'teams.json', {});
 export const players: Record<string, Player> = read(DATA, 'players.json', {});
@@ -113,13 +114,17 @@ export const STAT_LABELS: Record<string, string> = {
 
 export function seasonStats(p: Player) {
   const s = { matches: 0, starts: 0, tries: 0, points: 0, advanced: {} as Record<string, number> };
-  for (const a of p.appearances) {
+  const apps = p.appearances.filter((a) => matchById.has(a.matchId));
+  for (const a of apps) {
     s.matches++;
     if (a.starter) s.starts++;
     s.tries += a.tries;
     s.points += a.points;
     for (const [k, v] of Object.entries(a.stats)) s.advanced[k] = (s.advanced[k] ?? 0) + v;
   }
+  // Stats avancées fournies seulement pour certains matchs (ex. internationaux) : masquées si partielles.
+  const withAdv = apps.filter((a) => Object.keys(a.stats).length > 0).length;
+  if (withAdv < apps.length / 2) s.advanced = {};
   return s;
 }
 

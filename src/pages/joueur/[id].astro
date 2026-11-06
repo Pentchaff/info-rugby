@@ -5,7 +5,7 @@ import type { ParcoursEntry, Player } from '../../lib/types';
 import { METRICS, MIN_MATCHES, compare, formatMetric, highlights, positionPlural, ratios } from '../../lib/playerStats';
 
 export function getStaticPaths() {
-  return Object.values(players).filter((p) => p.appearances.length > 0).map((p) => ({ params: { id: p.id }, props: { player: p } }));
+  return Object.values(players).filter((p) => p.appearances.some((a) => matchById.has(a.matchId))).map((p) => ({ params: { id: p.id }, props: { player: p } }));
 }
 const { player: p } = Astro.props as { player: Player };
 const { club, nation } = playerTeams(p);
@@ -37,16 +37,16 @@ const fmtSpan = (e: ParcoursEntry) => `${e.start ?? '?'} – ${e.end ?? (e.start
 const hasParcours = all.length > 0;
 const currentClub = club?.name ?? team(p.appearances.at(-1)?.teamId ?? '').name;
 
-const apps = [...p.appearances].reverse();
+const apps = p.appearances.filter((x) => matchById.has(x.matchId)).reverse();
 
 // Ratios et comparaison au poste
 const r = ratios(p);
 const cards = METRICS.map((m) => ({ m, v: r[m.key] ?? null, c: compare(p, m, r[m.key] ?? null) })).filter((x) => x.v !== null && !(x.m.onlyNonZero && x.v === 0));
 const brief = highlights(p);
-const minutesTotal = p.appearances.reduce((t, ap) => t + (ap.minutes ?? 0), 0);
-const kicks = p.appearances.reduce((t, ap) => ({ c: t.c + (ap.conversions ?? 0), p: t.p + (ap.penalties ?? 0), d: t.d + (ap.drops ?? 0) }), { c: 0, p: 0, d: 0 });
-const cardCount = p.appearances.reduce((t, ap) => ({ y: t.y + (ap.yellow ?? 0), r: t.r + (ap.red ?? 0) }), { y: 0, r: 0 });
-const smallSample = p.appearances.length < MIN_MATCHES;
+const minutesTotal = apps.reduce((t, ap) => t + (ap.minutes ?? 0), 0);
+const kicks = apps.reduce((t, ap) => ({ c: t.c + (ap.conversions ?? 0), p: t.p + (ap.penalties ?? 0), d: t.d + (ap.drops ?? 0) }), { c: 0, p: 0, d: 0 });
+const cardCount = apps.reduce((t, ap) => ({ y: t.y + (ap.yellow ?? 0), r: t.r + (ap.red ?? 0) }), { y: 0, r: 0 });
+const smallSample = apps.length < MIN_MATCHES;
 ---
 <Layout title={p.name}>
   <section class="head">
