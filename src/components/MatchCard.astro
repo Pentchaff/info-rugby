@@ -2,7 +2,7 @@
 import type { Match } from '../lib/types';
 import TeamLogo from './TeamLogo.astro';
 import { competitionBySlug, dayShortParis, diffusion, matchUrl, team, timeParis } from '../lib/data';
-import { groupOf, currentRank, ord } from '../lib/stakes';
+import { inStandings, currentRank, ord } from '../lib/stakes';
 
 interface Props { match: Match; showDate?: boolean; showCompetition?: boolean }
 const { match: m, showDate = false, showCompetition = true } = Astro.props;
@@ -11,7 +11,7 @@ const away = team(m.away.teamId);
 const d = diffusion(m);
 const comp = competitionBySlug.get(m.competition);
 const final = m.status === 'final';
-const showRanks = m.status === 'scheduled' && !!groupOf(m);
+const showRanks = m.status === 'scheduled' && inStandings(m);
 const rH = showRanks ? currentRank(m.competition, m.home.teamId) : null;
 const rA = showRanks ? currentRank(m.competition, m.away.teamId) : null;
 const winner = final && m.home.score !== null && m.away.score !== null

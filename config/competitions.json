@@ -1,5 +1,5 @@
 {
-  "_doc": "Compétitions suivies. espnId : identifiant de ligue ESPN (laisser vide pour une découverte automatique via 'match'). diffusion : Règle de diffusion (Diffuseur habituel en France). national : compétition entre sélections. enabled: false pour désactiver une compétition.",
+  "_doc": "Compétitions suivies. espnId : identifiant de ligue ESPN (laisser vide pour une découverte automatique via 'match'). diffusion : Règle de diffusion (Diffuseur habituel en France). national : compétition entre sélections. enabled: false pour désactiver une compétition. groups (facultatif) : classements séparés, chacun avec ses équipes (noms ESPN), quand ESPN mélange tout dans un seul tableau.",
   "competitions": [
     {
       "slug": "top14",
@@ -80,7 +80,17 @@
         "u20"
       ],
       "national": true,
-      "diffusion": "TF1 / France TV"
+      "diffusion": "TF1 / France TV",
+      "groups": [
+        {
+          "name": "Hémisphère Nord",
+          "teams": ["England", "France", "Ireland", "Italy", "Scotland", "Wales"]
+        },
+        {
+          "name": "Hémisphère Sud",
+          "teams": ["Argentina", "Australia", "Fiji", "Japan", "New Zealand", "South Africa"]
+        }
+      ]
     },
     {
       "slug": "tests",

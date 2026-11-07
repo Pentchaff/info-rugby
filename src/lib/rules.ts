@@ -1,6 +1,8 @@
 // Règles de classement par compétition (explications affichées et barème du simulateur).
 
 export interface Rules {
+  /** Présentation du format, affichée en tête des explications (facultatif). */
+  intro?: string;
   points: string[]; // barème
   bonus: string[];
   places: { range: string; label: string; tone?: 'up' | 'mid' | 'down' }[];
@@ -73,8 +75,13 @@ export const RULES: Record<string, Rules> = {
     offensive: 'au moins 4 essais',
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
-    places: [{ range: 'Haut du classement', label: 'Qualification pour la phase finale (règlement de World Rugby)', tone: 'up' }],
-    tiebreak: "En cas d'égalité : différence de points, puis nombre d'essais.",
+    intro:
+      "Deux classements séparés : hémisphère Nord (les six équipes du Tournoi des Six Nations) et hémisphère Sud (Afrique du Sud, Nouvelle-Zélande, Australie, Argentine, Fidji, Japon). Chaque équipe n'affronte que des équipes de l'autre hémisphère, puis les phases finales opposent les équipes classées au même rang dans chaque hémisphère.",
+    places: [
+      { range: '1er', label: "Grande finale contre le 1er de l'autre hémisphère", tone: 'up' },
+      { range: '2e – 6e', label: "Match de classement contre l'équipe classée au même rang dans l'autre hémisphère (2e contre 2e, 3e contre 3e…)" },
+    ],
+    tiebreak: "En cas d'égalité dans un hémisphère : différence de points, puis nombre d'essais.",
   },
   'rugby-championship': {
     points: WDL,
@@ -103,7 +110,7 @@ export function placeTone(slug: string, rank: number, total: number): 'up' | 'mi
   if (slug === 'champions-cup') return rank <= 4 ? 'up' : rank === 5 ? 'mid' : 'down';
   if (slug === 'challenge-cup') return rank <= 4 ? 'up' : 'down';
   if (slug === 'coupe-du-monde') return rank <= 2 ? 'up' : null;
-  if (slug === 'six-nations' || slug === 'rugby-championship') return rank === 1 ? 'up' : null;
+  if (slug === 'six-nations' || slug === 'rugby-championship' || slug === 'nations-championship') return rank === 1 ? 'up' : null;
   void total;
   return null;
 }

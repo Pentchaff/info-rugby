@@ -32,7 +32,7 @@ const delta = (now: number, next: number) => (next < now ? `▲${now - next}` : 
       </table>
     </section>
     <p class="muted small">
-      Places{stakes.groupName ? ` dans la ${stakes.groupName.toLowerCase().replace('pool', 'poule')}` : ''}, si les autres matchs ne sont pas encore joués. Égalités départagées à la différence de points (simplifié).
+      Places{stakes.scope ? ` ${stakes.scope}` : ''}, si les autres matchs ne sont pas encore joués. Égalités départagées à la différence de points (simplifié).
       <a class="link" href={url(`classements/#${m.competition}`)}>Simuler toute la journée →</a>
     </p>
   </>

@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import TeamLogo from '../../components/TeamLogo.astro';
 import { competitionBySlug, dayParis, matchById, diffusion, matches, playerUrl, players, positionFr, standings, team, teamUrl, timeParis, url } from '../../lib/data';
 import StakesTable from '../../components/StakesTable.astro';
-import { currentRank, ord } from '../../lib/stakes';
+import { currentRank, groupFor, ord } from '../../lib/stakes';
 import type { LineupEntry, Match } from '../../lib/types';
 
 export function getStaticPaths() {
@@ -26,11 +26,13 @@ const isCanal = /canal/i.test(d.name);
 
 const rankH = currentRank(m.competition, home.id);
 const rankA = currentRank(m.competition, away.id);
+// Compétition à classements séparés (Nations Championship) : « 1er Hémisphère Nord » plutôt que « 1er Nations Championship ».
+const rankIn = (id: string) => (comp?.groups?.length ? groupFor(m.competition, id)?.name : null) ?? comp?.name;
 ---
 <Layout title={`${home.name} - ${away.name}`}>
   <p class="badge">{comp?.name}{m.round ? ` · ${m.round}` : ''}</p>
   <section class="card pad head">
-    <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong>{rankH && <span class="muted small">{ord(rankH)} {comp?.name}</span>}</a>
+    <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong>{rankH && <span class="muted small">{ord(rankH)} {rankIn(home.id)}</span>}</a>
     <div class="center">
       {final || m.status === 'live'
         ? <div class="big">{m.home.score ?? '–'} <span class="muted">-</span> {m.away.score ?? '–'}</div>
@@ -41,7 +43,7 @@ const rankA = currentRank(m.competition, away.id);
       {m.status === 'postponed' && <div class="state">Reporté</div>}
       {m.status === 'canceled' && <div class="state">Annulé</div>}
     </div>
-    <a href={teamUrl(away.id)} class="side"><TeamLogo team={away} size="lg" /><strong>{away.name}</strong>{rankA && <span class="muted small">{ord(rankA)} {comp?.name}</span>}</a>
+    <a href={teamUrl(away.id)} class="side"><TeamLogo team={away} size="lg" /><strong>{away.name}</strong>{rankA && <span class="muted small">{ord(rankA)} {rankIn(away.id)}</span>}</a>
   </section>
   {m.venue && <p class="muted small center-text">📍 {m.venue}</p>}
 

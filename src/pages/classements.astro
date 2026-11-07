@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import TeamLogo from '../components/TeamLogo.astro';
-import { competitions, dayShortParis, matches, standings, team, teamUrl, timeParis } from '../lib/data';
+import { competitionBySlug, competitions, dayShortParis, matches, standings, team, teamUrl, timeParis } from '../lib/data';
 import { RULES, placeTone } from '../lib/rules';
 import { OUTCOMES } from '../lib/standings';
 import type { StandingRow } from '../lib/types';
@@ -17,12 +17,13 @@ const now = Date.now();
 function nextRound(slug: string) {
   const groups = standings[slug] ?? [];
   const inGroup = (id: string) => groups.find((g) => g.rows.some((r) => r.teamId === id));
+  const cross = !!competitionBySlug.get(slug)?.groups?.length; // matchs entre groupes (Nord contre Sud)
   const up = matches.filter((m) => m.competition === slug && m.status === 'scheduled' && new Date(m.date).getTime() > now);
   if (!up.length) return [];
   const first = new Date(up[0].date).getTime();
   return up
     .filter((m) => new Date(m.date).getTime() < first + 4 * 24 * 3600_000)
-    .filter((m) => inGroup(m.home.teamId) && inGroup(m.home.teamId) === inGroup(m.away.teamId))
+    .filter((m) => inGroup(m.home.teamId) && inGroup(m.away.teamId) && (cross || inGroup(m.home.teamId) === inGroup(m.away.teamId)))
     .map((m) => ({ id: m.id, home: m.home.teamId, away: m.away.teamId, when: `${dayShortParis(m.date)} ${timeParis(m.date)}` }));
 }
 const sim = Object.fromEntries(
@@ -89,6 +90,7 @@ const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] 
         {rules && (
           <details class="card pad explain">
             <summary>Comment marche ce classement ?</summary>
+            {rules.intro && <p class="small">{rules.intro}</p>}
             <h3>Points</h3>
             <ul>{rules.points.map((p) => <li>{p}</li>)}</ul>
             <h3>Bonus</h3>

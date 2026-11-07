@@ -64,6 +64,27 @@ export const standings: Record<string, StandingGroup[]> = read(DATA, 'standings.
   }
 }
 
+// ---------- Classements découpés ----------
+// Certaines compétitions ont plusieurs classements qu'ESPN renvoie mélangés (Nations Championship :
+// hémisphères Nord et Sud). On les redécoupe d'après config/competitions.json (champ « groups »).
+for (const c of competitions) {
+  if (!c.groups?.length || !standings[c.slug]?.length) continue;
+  const all = standings[c.slug].flatMap((g) => g.rows);
+  const nameOf = (id: string) => keyOf(teams[id]?.espnName ?? '');
+  const split = c.groups.map((g) => {
+    const keys = new Set(g.teams.map(keyOf));
+    const rows = all
+      .filter((r) => keys.has(nameOf(r.teamId)))
+      .sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || (b.diff ?? 0) - (a.diff ?? 0) || a.rank - b.rank)
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+    return { name: g.name, rows };
+  });
+  const placed = new Set(split.flatMap((g) => g.rows.map((r) => r.teamId)));
+  const rest = all.filter((r) => !placed.has(r.teamId));
+  if (rest.length) split.push({ name: 'Autres équipes', rows: rest });
+  standings[c.slug] = split.filter((g) => g.rows.length);
+}
+
 export const meta: Meta = read<Meta>(DATA, 'meta.json', {
   updatedAt: null,
   lastFullAt: null,

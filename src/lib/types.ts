@@ -132,4 +132,6 @@ export interface CompetitionConfig {
   national: boolean;
   diffusion: string;
   enabled?: boolean;
+  /** Classements séparés (ex. hémisphères Nord et Sud), équipes désignées par leur nom ESPN. */
+  groups?: { name: string; teams: string[] }[];
 }
