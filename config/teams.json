@@ -588,6 +588,14 @@
         "vannes",
         "rugby club vannetais"
       ]
+    },
+    "bordeaux": {
+      "fr": "Union Bordeaux-Bègles",
+      "aliases": [
+        "bordeaux",
+        "ubb",
+        "begles"
+      ]
     }
   }
 }

@@ -23,7 +23,17 @@ const decode = (s: string) =>
   s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
 export async function fetchFeed(channelId: string): Promise<FeedVideo[]> {
-  const xml = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
+  // Les flux RSS de YouTube renvoient par intermittence un 404 pour une chaîne existante : on réessaie.
+  let xml = '';
+  for (let i = 0; ; i++) {
+    try {
+      xml = await fetchText(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
+      break;
+    } catch (e) {
+      if (i >= 3 || !(e instanceof HttpError) || e.status !== 404) throw e;
+      await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
+    }
+  }
   const channel = decode(xml.match(/<author>\s*<name>([^<]+)<\/name>/)?.[1] ?? '');
   const out: FeedVideo[] = [];
   for (const entry of xml.split('<entry>').slice(1)) {

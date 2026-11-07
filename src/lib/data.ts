@@ -32,6 +32,38 @@ for (const t of Object.values(teams)) {
 }
 export const players: Record<string, Player> = read(DATA, 'players.json', {});
 export const standings: Record<string, StandingGroup[]> = read(DATA, 'standings.json', {});
+// ---------- Doublons d'équipes ESPN ----------
+// ESPN utilise parfois un second identifiant pour un même club (ex. « Perpignan » 25920 et 289360).
+// On fusionne les équipes de même nom affiché et de même compétition, en gardant celle du classement.
+{
+  const inStandings = new Set(Object.values(standings).flatMap((gs) => gs.flatMap((g) => g.rows.map((r) => r.teamId))));
+  const groups = new Map<string, Team[]>();
+  for (const t of Object.values(teams)) {
+    const k = `${t.national ? 'n' : 'c'}:${keyOf(t.name)}`;
+    groups.set(k, [...(groups.get(k) ?? []), t]);
+  }
+  const canon = new Map<string, string>();
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const keep = g.find((t) => inStandings.has(t.id)) ?? g.find((t) => t.logo) ?? g[0];
+    for (const t of g) {
+      if (t.id === keep.id || !t.competitions.some((c) => keep.competitions.includes(c))) continue;
+      canon.set(t.id, keep.id);
+      keep.logo ??= t.logo;
+      delete teams[t.id];
+    }
+  }
+  const fix = (id: string) => canon.get(id) ?? id;
+  if (canon.size) {
+    for (const m of matches) {
+      m.home.teamId = fix(m.home.teamId);
+      m.away.teamId = fix(m.away.teamId);
+      for (const sc of m.scorers) sc.teamId = fix(sc.teamId);
+    }
+    for (const p of Object.values(players)) for (const a of p.appearances) a.teamId = fix(a.teamId);
+  }
+}
+
 export const meta: Meta = read<Meta>(DATA, 'meta.json', {
   updatedAt: null,
   lastFullAt: null,
