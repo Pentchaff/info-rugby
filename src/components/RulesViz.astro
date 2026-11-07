@@ -1,0 +1,185 @@
+---
+// Illustrations animées des explications de classement (points, bonus, places).
+// Les animations se rejouent à chaque ouverture des explications (classe « play » posée par la page).
+import TeamLogo from './TeamLogo.astro';
+import { team } from '../lib/data';
+import { placeTone, type Rules } from '../lib/rules';
+import type { StandingGroup } from '../lib/types';
+
+interface Props { part: 'points' | 'bonus' | 'places'; slug: string; rules: Rules; groups: StandingGroup[] }
+const { part, slug, rules, groups } = Astro.props;
+
+// --- Points : jetons gagnés selon le résultat, cases dorées = bonus possibles.
+const margin = !!rules.offensiveWinMargin; // Top 14 : bonus offensif réservé au vainqueur
+const outcomes = [
+  { label: 'Victoire', base: 4, bonus: ['offensif'] },
+  { label: 'Match nul', base: 2, bonus: margin ? [] : ['offensif'] },
+  { label: 'Défaite', base: 0, bonus: margin ? ['défensif'] : ['défensif', 'offensif'] },
+];
+
+// --- Bonus défensif : jauge d'écart au score, exemple juste sous la limite.
+const gap = rules.defensiveGap;
+const scale = gap * 2 + 1;
+const example = Math.max(1, gap - 2);
+const loser = 20;
+
+// --- Places : bande colorée du classement (premier groupe), ou tableau des phases finales croisées.
+const size = groups[0]?.rows.length || 6;
+const cross = groups.length === 2 && slug === 'nations-championship';
+const finals = cross
+  ? groups[0].rows.map((r, i) => ({ rank: i + 1, a: r.teamId, b: groups[1].rows[i]?.teamId ?? null }))
+  : [];
+// Couleur de chaque place d'après la légende des règles (« 3e – 6e », « 13e »…), sinon la couleur du tableau.
+const toneAt = (rank: number) => {
+  for (const p of rules.places) {
+    const [a, b = a] = (p.range.match(/\d+/g) ?? []).map(Number);
+    if (a && rank >= a && rank <= b) return p.tone ?? null;
+  }
+  return placeTone(slug, rank, size);
+};
+const finalLabel = (r: number) => (r === 1 ? 'Finale' : `Match pour la ${2 * r - 1}e place`);
+---
+{part === 'points' && (
+  <div class="viz pts-viz" aria-hidden="true">
+    {outcomes.map((o, k) => (
+      <div class="oc">
+        <div class="oc-l"><strong>{o.label}</strong>{' '}<span class="muted">{o.base} pt{o.base > 1 ? 's' : ''}{o.bonus.length ? ` + bonus ${o.bonus.join(' / ')}` : ''}</span></div>
+        <div class="pips">
+          {Array.from({ length: o.base }, (_, i) => <span class="pip" style={`--i:${k * 2 + i}`}></span>)}
+          {o.bonus.map((b, i) => <span class="pip bonus" style={`--i:${k * 2 + o.base + i + 1}`} title={`Bonus ${b}`}>+1</span>)}
+          {o.base === 0 && o.bonus.length === 0 && <span class="zero">0</span>}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
+{part === 'bonus' && (
+  <div class="viz bonus-viz" aria-hidden="true">
+    <div class="bx">
+      <div class="bx-t">Bonus offensif</div>
+      <div class="tries">
+        {Array.from({ length: rules.offensiveTries }, (_, i) => <span class="try" style={`--i:${i}`}><span class="ball"></span></span>)}
+        <span class="plus" style={`--i:${rules.offensiveTries}`}>+1</span>
+      </div>
+      <div class="bx-c muted">{margin ? `${rules.offensiveTries} essais de plus que l'adversaire, et la victoire` : `${rules.offensiveTries} essais marqués, même en cas de défaite`}</div>
+    </div>
+    <div class="bx">
+      <div class="bx-t">Bonus défensif</div>
+      <div class="gauge" style={`--gap:${gap / scale};--at:${example / scale}`}>
+        <span class="zone-ok"></span>
+        <span class="tick" style={`left:${(gap / scale) * 100}%`}>{gap}</span>
+        <span class="marker"><span class="score">{loser}–{loser + example}</span></span>
+        <span class="plus">+1</span>
+      </div>
+      <div class="bx-c muted">Défaite {loser}–{loser + example} : {example} point{example > 1 ? 's' : ''} d'écart, c'est {gap} ou moins</div>
+    </div>
+  </div>
+)}
+
+{part === 'places' && !cross && (
+  <div class="viz strip" style={`--n:${size}`} aria-hidden="true">
+    {Array.from({ length: size }, (_, i) => (
+      <span class:list={['cell', toneAt(i + 1)]} style={`--i:${i}`}>{i + 1}</span>
+    ))}
+  </div>
+)}
+
+{part === 'places' && cross && (
+  <div class="viz bracket">
+    <p class="small muted br-cap">Si les phases finales avaient lieu aujourd'hui :</p>
+    <div class="br-head small muted"><span>{groups[0].name}</span><span></span><span>{groups[1].name}</span></div>
+    {finals.map((f) => (
+      <div class:list={['br-row', f.rank === 1 && 'final']} style={`--i:${f.rank - 1}`}>
+        <span class="br-t">{f.a && <><TeamLogo team={team(f.a)} /><span class="nm">{team(f.a).name}</span></>}</span>
+        <span class="br-mid"><span class="line l"></span><span class="br-lab">{f.rank === 1 ? 'Finale' : `${f.rank}e`}</span><span class="line r"></span></span>
+        <span class="br-t r">{f.b && <><span class="nm">{team(f.b).name}</span><TeamLogo team={team(f.b)} /></>}</span>
+        <span class="sr-only">{finalLabel(f.rank)}</span>
+      </div>
+    ))}
+  </div>
+)}
+
+<style>
+  .viz { margin: 10px 0 6px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* Points */
+  .pts-viz { display: grid; gap: 8px; }
+  .oc { display: grid; grid-template-columns: minmax(0, 230px) 1fr; align-items: center; gap: 10px; }
+  .pips { display: flex; gap: 5px; min-height: 24px; align-items: center; }
+  .pip { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); flex: none; }
+  .pip.bonus { background: transparent; border: 2px dashed var(--gold); color: var(--gold); font-size: .62rem; font-weight: 800; display: grid; place-items: center; }
+  .zero { color: var(--muted); font-weight: 700; }
+  .oc-l { font-size: .84rem; }
+  @media (max-width: 420px) {
+    .oc { grid-template-columns: 1fr; gap: 3px; }
+  }
+
+  /* Bonus */
+  .bonus-viz { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .bx { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+  .bx-t { font-weight: 700; font-size: .84rem; margin-bottom: 8px; }
+  .bx-c { font-size: .78rem; margin-top: 8px; }
+  .tries { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+  .try { display: grid; place-items: center; width: 30px; height: 30px; }
+  .ball {
+    width: 26px; height: 16px; border-radius: 50%; background: var(--accent); transform: rotate(-30deg); position: relative;
+  }
+  .ball::after { content: ''; position: absolute; left: 6px; right: 6px; top: 7px; height: 2px; background: var(--surface); border-radius: 2px; }
+  .plus { font-weight: 800; color: var(--gold); font-size: 1rem; }
+  .gauge { position: relative; height: 34px; margin: 18px 4px 0; }
+  .gauge::before { content: ''; position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--border); }
+  .zone-ok { position: absolute; left: 0; top: 14px; height: 6px; width: calc(var(--gap) * 100%); border-radius: 3px; background: var(--gold); transform-origin: left; }
+  .tick { position: absolute; top: 24px; transform: translateX(-50%); font-size: .7rem; color: var(--muted); font-weight: 700; }
+  .tick::before { content: ''; position: absolute; left: 50%; top: -12px; width: 2px; height: 8px; background: var(--muted); }
+  .marker { position: absolute; top: 8px; left: calc(var(--at) * 100%); width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: var(--surface); border: 3px solid var(--live); }
+  .marker .score { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: .7rem; font-weight: 700; white-space: nowrap; }
+  .gauge .plus { position: absolute; right: 0; top: -14px; }
+
+  /* Places : bande */
+  .strip { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 3px; max-width: 520px; }
+  .cell { height: 28px; border-radius: 5px; background: var(--surface-2); color: var(--muted); font-size: .72rem; font-weight: 700; display: grid; place-items: center; transform-origin: bottom; }
+  .cell.up { background: var(--win); color: var(--accent-contrast); }
+  .cell.mid { background: var(--gold); color: var(--surface); }
+  .cell.down { background: var(--live); color: var(--surface); }
+
+  /* Places : phases finales croisées */
+  .br-cap { margin: 0 0 6px; }
+  .br-head, .br-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 6px; }
+  .br-head span:last-child { text-align: right; }
+  .br-row { padding: 6px 8px; border-radius: 10px; margin-top: 4px; background: var(--surface-2); position: relative; }
+  .br-row.final { background: color-mix(in srgb, var(--gold) 16%, var(--surface)); outline: 1.5px solid var(--gold); }
+  .br-t { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; font-size: .84rem; }
+  .br-t.r { justify-content: flex-end; }
+  .br-t :global(.logo) { width: 22px; height: 22px; }
+  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .br-mid { display: flex; align-items: center; gap: 4px; }
+  .line { flex: 1; height: 2px; width: 10px; background: var(--muted); opacity: .5; }
+  .line.l { transform-origin: left; }
+  .line.r { transform-origin: right; }
+  .br-lab { font-size: .7rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .final .br-lab { color: var(--gold); text-transform: uppercase; letter-spacing: .04em; }
+  .final .line { background: var(--gold); opacity: 1; }
+
+  /* Animations : uniquement quand les explications viennent d'être ouvertes. Sans elles, tout est déjà en place. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.play) .pip { animation: pop .35s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i) * 90ms + 150ms); }
+    :global(.play) .try { animation: drop .45s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--i) * 260ms + 200ms); }
+    :global(.play) .tries .plus { animation: pop .4s cubic-bezier(.3, 1.8, .5, 1) both; animation-delay: calc(var(--i) * 260ms + 350ms); }
+    :global(.play) .zone-ok { animation: grow-x .6s ease-out both .2s; }
+    :global(.play) .marker { animation: slide 1.3s cubic-bezier(.2, .8, .3, 1) both .5s; }
+    :global(.play) .gauge .plus { animation: pop .4s cubic-bezier(.3, 1.8, .5, 1) both 1.7s; }
+    :global(.play) .cell { animation: rise .4s ease-out both; animation-delay: calc(var(--i) * 45ms + 100ms); }
+    :global(.play) .br-row { animation: fade-in .35s ease-out both; animation-delay: calc(var(--i) * 110ms + 100ms); }
+    :global(.play) .br-row .line { animation: grow-x .45s ease-out both; animation-delay: calc(var(--i) * 110ms + 300ms); }
+    :global(.play) .br-row.final { animation: fade-in .35s ease-out both .1s, glow 1.6s ease-in-out 1s 2; }
+  }
+  @keyframes pop { from { transform: scale(0); opacity: 0; } }
+  @keyframes drop { from { transform: translateY(-18px) scale(.6); opacity: 0; } }
+  @keyframes grow-x { from { transform: scaleX(0); } }
+  @keyframes rise { from { transform: scaleY(0); opacity: 0; } }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes slide { from { left: 100%; } }
+  @keyframes glow { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 30%, transparent); } }
+</style>

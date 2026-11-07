@@ -10,6 +10,10 @@ export interface Rules {
   /** Écart maximal pour le bonus défensif (simulateur, texte). */
   defensiveGap: number;
   offensive: string;
+  /** Essais à marquer pour le bonus offensif (illustration). */
+  offensiveTries: number;
+  /** Vrai si ce sont des essais d'écart avec l'adversaire et qu'il faut gagner (Top 14). */
+  offensiveWinMargin?: boolean;
 }
 
 const STANDARD_BONUS = (gap: number, offensive: string) => [
@@ -22,6 +26,8 @@ export const RULES: Record<string, Rules> = {
   top14: {
     points: WDL,
     offensive: '3 essais de plus que l’adversaire',
+    offensiveTries: 3,
+    offensiveWinMargin: true,
     defensiveGap: 5,
     bonus: [
       "Bonus offensif : +1 point pour une équipe qui gagne en marquant au moins 3 essais de plus que l'adversaire.",
@@ -39,6 +45,7 @@ export const RULES: Record<string, Rules> = {
   'champions-cup': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
     places: [
@@ -51,6 +58,7 @@ export const RULES: Record<string, Rules> = {
   'challenge-cup': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
     places: [
@@ -62,6 +70,7 @@ export const RULES: Record<string, Rules> = {
   'six-nations': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: [...STANDARD_BONUS(7, 'au moins 4 essais'), "Grand Chelem (5 victoires sur 5) : +3 points, pour que le vainqueur du Grand Chelem soit toujours premier."],
     places: [
@@ -73,6 +82,7 @@ export const RULES: Record<string, Rules> = {
   'nations-championship': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
     intro:
@@ -86,6 +96,7 @@ export const RULES: Record<string, Rules> = {
   'rugby-championship': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
     places: [{ range: '1er', label: 'Vainqueur du Rugby Championship', tone: 'up' }],
@@ -94,6 +105,7 @@ export const RULES: Record<string, Rules> = {
   'coupe-du-monde': {
     points: WDL,
     offensive: 'au moins 4 essais',
+    offensiveTries: 4,
     defensiveGap: 7,
     bonus: STANDARD_BONUS(7, 'au moins 4 essais'),
     places: [

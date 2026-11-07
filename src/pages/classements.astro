@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import TeamLogo from '../components/TeamLogo.astro';
+import RulesViz from '../components/RulesViz.astro';
 import { competitionBySlug, competitions, dayShortParis, matches, standings, team, teamUrl, timeParis } from '../lib/data';
 import { RULES, placeTone } from '../lib/rules';
 import { OUTCOMES } from '../lib/standings';
@@ -92,11 +93,14 @@ const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] 
             <summary>Comment marche ce classement ?</summary>
             {rules.intro && <p class="small">{rules.intro}</p>}
             <h3>Points</h3>
+            <RulesViz part="points" slug={c.slug} rules={rules} groups={standings[c.slug]} />
             <ul>{rules.points.map((p) => <li>{p}</li>)}</ul>
             <h3>Bonus</h3>
+            <RulesViz part="bonus" slug={c.slug} rules={rules} groups={standings[c.slug]} />
             <ul>{rules.bonus.map((b) => <li>{b}</li>)}</ul>
             <p class="small muted">Une équipe peut donc prendre au maximum 5 points par match (victoire + bonus offensif).</p>
             <h3>Ce que donne chaque place</h3>
+            <RulesViz part="places" slug={c.slug} rules={rules} groups={standings[c.slug]} />
             <ul class="places">{rules.places.map((p) => <li><span class:list={['dot', p.tone]}></span><strong>{p.range}</strong> : {p.label}</li>)}</ul>
             <h3>Égalités</h3>
             <p class="small">{rules.tiebreak}</p>
@@ -179,6 +183,17 @@ const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] 
   const h = location.hash.slice(1);
   if (h && document.querySelector(`[data-panel="${h}"]`)) show(h);
   document.querySelectorAll<HTMLElement>('tr[data-team]').forEach((tr) => tr.classList.toggle('fav', favs.has(tr.dataset.team!)));
+
+  // Explications : les illustrations s'animent à chaque ouverture.
+  document.querySelectorAll<HTMLDetailsElement>('details.explain').forEach((d) =>
+    d.addEventListener('toggle', () => {
+      d.classList.remove('play');
+      if (d.open) {
+        void d.offsetWidth; // relance les animations
+        d.classList.add('play');
+      }
+    }),
+  );
 
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
