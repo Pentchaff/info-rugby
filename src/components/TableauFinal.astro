@@ -1,0 +1,184 @@
+---
+// Tableau final : la Phase finale si la saison régulière s'arrêtait aujourd'hui (projection d'après le classement).
+// L'animation se joue quand le tableau arrive à l'écran (classe « play » posée par la page).
+import TeamLogo from './TeamLogo.astro';
+import { competitionBySlug, team, teamUrl } from '../lib/data';
+import { bracketFor, layout, teamsOf, type BracketNode, type LaidMatch } from '../lib/finals';
+import { ord } from '../lib/stakes';
+import type { StandingGroup } from '../lib/types';
+
+interface Props { slug: string; groups: StandingGroup[] }
+const { slug, groups } = Astro.props;
+
+const bracket = bracketFor(slug, groups);
+
+// Nations Championship : un seul tour, chaque place du Nord contre la même place du Sud.
+const crossComp = (competitionBySlug.get(slug)?.groups?.length ?? 0) === 2 && groups.length === 2;
+const crossStarted = crossComp && groups.flatMap((g) => g.rows).every((r) => (r.played ?? 0) > 0);
+const cross = crossStarted ? groups[0].rows.map((r, i) => ({ rank: i + 1, a: r.teamId, b: groups[1].rows[i]?.teamId ?? null })) : [];
+
+// Géométrie (px) : hauteur d'un match, espacement vertical, place des intitulés de tours.
+const H = 64;
+const PITCH = 78;
+const HEAD = 24;
+const laid = bracket ? layout(bracket.final) : null;
+const C = laid?.cols ?? 1;
+const bw = C >= 4 ? 70 : 84;
+const left = (c: number) => `calc((100% - ${bw}px) * ${c} / ${Math.max(C - 1, 1)})`;
+const topOf = (row: number) => HEAD + row * PITCH;
+const byNode = new Map<BracketNode, LaidMatch>(laid?.matches.map((m) => [m.node, m]) ?? []);
+
+// Calendrier de l'animation : logos dans l'ordre du classement, puis les traits tour par tour.
+const maxSeed = bracket ? Math.max(...laid!.matches.flatMap((m) => [m.node.a, m.node.b]).map((n) => (n.kind === 'team' ? n.seed : 0))) : 0;
+const tLogo = (seed: number) => 0.15 + (seed - 1) * 0.06;
+const tLines = tLogo(maxSeed) + 0.35;
+const tCol = (c: number) => tLines + c * 0.4; // traits partant de la colonne c
+const tGlow = tCol(C - 1) + 0.2;
+
+const connectors = laid
+  ? laid.matches.flatMap((m) =>
+      ([m.node.a, m.node.b] as BracketNode[]).flatMap((child, slot) => {
+        if (child.kind !== 'match') return [];
+        const k = byNode.get(child)!;
+        const y1 = topOf(k.row) + H / 2;
+        const y2 = topOf(m.row) + (slot === 0 ? H / 4 : (3 * H) / 4);
+        const top = Math.min(y1, y2) - 1;
+        const h = Math.abs(y2 - y1) + 2;
+        const a = y1 - top;
+        const b = y2 - top;
+        return [{ col: k.col, top, h, d: `M0,${a} H50 V${b} H100`, teams: teamsOf(child).join(' ') }];
+      }),
+    )
+  : [];
+const show = !!bracket || cross.length > 0;
+---
+{show && (
+  <section class="tf" data-tf>
+    <h2>Tableau final</h2>
+    <p class="muted small">Les phases finales si la saison régulière s'arrêtait aujourd'hui : une projection d'après le classement, pas un pronostic.</p>
+
+    {bracket && laid && (
+      <div class="card pad">
+        <div class="tree" style={`height:${topOf(laid.rows - 1) + H + 4}px;--bw:${bw}px`}>
+          {bracket.rounds.map((r, c) => <span class="round" style={`left:${left(c)}`}>{r}</span>)}
+          {connectors.map((cn) => (
+            <svg class="cn" data-teams={cn.teams} style={`left:calc(${left(cn.col)} + ${bw}px);width:calc((100% - ${bw}px) / ${C - 1} - ${bw}px);top:${cn.top}px;height:${cn.h}px;--t:${tCol(cn.col)}s`} viewBox={`0 0 100 ${cn.h}`} preserveAspectRatio="none" aria-hidden="true">
+              <path d={cn.d} vector-effect="non-scaling-stroke" />
+            </svg>
+          ))}
+          {laid.matches.map((m) => (
+            <div class:list={['m', m.col === C - 1 && 'final']} style={`left:${left(m.col)};top:${topOf(m.row)}px;--t:${tGlow}s`}>
+              {([m.node.a, m.node.b] as BracketNode[]).map((n) =>
+                n.kind === 'team' ? (
+                  <a class="slot team" href={teamUrl(n.teamId)} data-teams={n.teamId} style={`--t:${tLogo(n.seed)}s`} title={`${team(n.teamId).name} (${ord(n.seed)})`}>
+                    <span class="seed">{n.seed}</span><TeamLogo team={team(n.teamId)} /><span class="code">{team(n.teamId).short}</span>
+                  </a>
+                ) : (
+                  <span class="slot cands" data-teams={teamsOf(n).join(' ')} style={`--t:${tCol(byNode.get(n)!.col) + 0.3}s`} title={`Vainqueur entre ${teamsOf(n).map((id) => team(id).name).join(', ')}`}>
+                    {teamsOf(n).map((id) => <TeamLogo team={team(id)} />)}
+                  </span>
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+        {bracket.extras.length > 0 && (
+          <div class="extras" style={`--t:${tGlow}s`}>
+            {bracket.extras.map((e) => (
+              <span class="extra">
+                <span class="muted">{e.label} :</span>
+                {e.teamIds.map((id) => <a class="ex-t" href={teamUrl(id)} data-teams={id}><TeamLogo team={team(id)} /> {team(id).short}</a>)}
+              </span>
+            ))}
+          </div>
+        )}
+        <p class="muted small hint">En grand : les équipes déjà qualifiées pour ce tour. En petit : celles qui peuvent y arriver.</p>
+      </div>
+    )}
+
+    {cross.length > 0 && (
+      <div class="card pad bracket-x">
+        <div class="br-head small muted"><span>{groups[0].name}</span><span></span><span>{groups[1].name}</span></div>
+        {cross.map((f) => (
+          <div class:list={['br-row', f.rank === 1 && 'final']} style={`--i:${f.rank - 1}`}>
+            <a class="br-t" href={teamUrl(f.a)} data-teams={f.a}><TeamLogo team={team(f.a)} /><span class="nm">{team(f.a).name}</span></a>
+            <span class="br-mid"><span class="line l"></span><span class="br-lab">{f.rank === 1 ? 'Finale' : ord(f.rank)}</span><span class="line r"></span></span>
+            {f.b ? <a class="br-t r" href={teamUrl(f.b)} data-teams={f.b}><span class="nm">{team(f.b).name}</span><TeamLogo team={team(f.b)} /></a> : <span></span>}
+          </div>
+        ))}
+        <p class="muted small hint">Finale entre les deux premiers, puis 2e contre 2e, 3e contre 3e… pour les places suivantes.</p>
+      </div>
+    )}
+  </section>
+)}
+
+<style>
+  .tf { margin-top: 18px; }
+  .tf h2 { margin-bottom: 2px; }
+  .tf > p { margin: 0 0 10px; }
+  .hint { margin: 10px 0 0; }
+
+  /* Arbre */
+  .tree { position: relative; }
+  .round { position: absolute; top: 0; width: var(--bw); text-align: center; font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .m { position: absolute; width: var(--bw); height: 64px; display: grid; grid-template-rows: 1fr 1fr; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+  .m.final { border: 1.5px solid var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+  .slot { display: flex; align-items: center; gap: 4px; padding: 0 5px; min-width: 0; color: inherit; text-decoration: none; }
+  .slot + .slot { border-top: 1px solid var(--border); }
+  .seed { font-size: .6rem; font-weight: 700; color: var(--muted); min-width: 10px; text-align: right; }
+  .code { font-size: .74rem; font-weight: 700; letter-spacing: .02em; }
+  .slot :global(.logo) { width: 20px !important; height: 20px !important; }
+  .cands { flex-wrap: wrap; gap: 2px; align-content: center; opacity: .55; }
+  .cands :global(.logo) { width: 13px !important; height: 13px !important; }
+  /* Sans logo : simple pastille (le code à 3 lettres est déjà affiché à côté). */
+  .tf :global(.logo-ph) { font-size: 0 !important; background: var(--border); }
+  .cn { position: absolute; overflow: visible; }
+  .cn path { fill: none; stroke: var(--muted); stroke-width: 1.5; opacity: .55; }
+
+  /* Équipe favorite (classe posée par la page) */
+  .slot.fav { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); opacity: 1; }
+  .cn.fav path { stroke: var(--accent); opacity: 1; stroke-width: 2.5; }
+
+  .extras { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: .8rem; }
+  .extra { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ex-t { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: inherit; text-decoration: none; border-radius: 6px; padding: 1px 3px; }
+  .ex-t :global(.logo) { width: 18px !important; height: 18px !important; }
+  .ex-t.fav { box-shadow: inset 0 0 0 2px var(--accent); }
+
+  /* Nord contre Sud */
+  .br-head, .br-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 6px; }
+  .br-head span:last-child { text-align: right; }
+  .br-row { padding: 6px 8px; border-radius: 10px; margin-top: 4px; background: var(--surface-2); }
+  .br-row.final { background: color-mix(in srgb, var(--gold) 16%, var(--surface)); outline: 1.5px solid var(--gold); }
+  .br-t { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; font-size: .84rem; color: inherit; text-decoration: none; border-radius: 6px; }
+  .br-t.r { justify-content: flex-end; }
+  .br-t.fav { box-shadow: 0 0 0 2px var(--accent); }
+  .br-t :global(.logo) { width: 22px !important; height: 22px !important; }
+  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .br-mid { display: flex; align-items: center; gap: 4px; }
+  .line { height: 2px; width: 10px; background: var(--muted); opacity: .5; }
+  .line.l { transform-origin: left; }
+  .line.r { transform-origin: right; }
+  .br-lab { font-size: .7rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .final .br-lab { color: var(--gold); text-transform: uppercase; letter-spacing: .04em; }
+  .final .line { background: var(--gold); opacity: 1; }
+
+  /* Animation : prête (« armed ») tant que le tableau n'est pas à l'écran, jouée avec « play ». Sans JS, tout est en place. */
+  @media (prefers-reduced-motion: no-preference) {
+    .tf:global(.armed):not(:global(.play)) :is(.team, .cands, .cn, .br-row, .extras) { opacity: 0; }
+    .tf:global(.play) .team { animation: pop .4s cubic-bezier(.3, 1.6, .5, 1) both var(--t); }
+    .tf:global(.play) .cn { animation: draw .4s ease-out both var(--t); }
+    .tf:global(.play) .cands { animation: fade .4s ease-out both var(--t); }
+    .tf:global(.play) .m.final { animation: glow 1.4s ease-in-out var(--t) 2; }
+    .tf:global(.play) .extras { animation: fade .4s ease-out both var(--t); }
+    .tf:global(.play) .br-row { animation: rise .35s ease-out both; animation-delay: calc(var(--i) * 110ms + 100ms); }
+    .tf:global(.play) .br-row .line { animation: grow-x .45s ease-out both; animation-delay: calc(var(--i) * 110ms + 300ms); }
+    .tf:global(.play) .br-row.final { animation: rise .35s ease-out both .1s, glow 1.6s ease-in-out 1s 2; }
+  }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } }
+  @keyframes draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes grow-x { from { transform: scaleX(0); } }
+  @keyframes glow { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 35%, transparent); } }
+</style>

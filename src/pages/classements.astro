@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import TeamLogo from '../components/TeamLogo.astro';
 import RulesViz from '../components/RulesViz.astro';
+import TableauFinal from '../components/TableauFinal.astro';
 import { competitionBySlug, competitions, dayShortParis, matches, standings, team, teamUrl, timeParis } from '../lib/data';
 import { RULES, placeTone } from '../lib/rules';
 import { OUTCOMES } from '../lib/standings';
@@ -87,6 +88,7 @@ const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] 
           );
         })}
         <p class="muted small">J joués · G gagnés · N nuls · P perdus · Diff différence de points · Bo points de bonus</p>
+        <TableauFinal slug={c.slug} groups={standings[c.slug]} />
 
         {rules && (
           <details class="card pad explain">
@@ -176,13 +178,33 @@ const outcomeLabels = (h: string, a: string): [keyof typeof OUTCOMES, string][] 
   const tabs = document.querySelectorAll<HTMLButtonElement>('[data-tab]');
   const show = (slug: string) => {
     tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === slug));
-    document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== slug));
+    document.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => {
+      p.hidden = p.dataset.panel !== slug;
+      // Tableau final d'un onglet masqué : son animation se rejouera à son retour à l'écran.
+      if (p.hidden) p.querySelectorAll<HTMLElement>('[data-tf]').forEach((tf) => tf.classList.remove('play'));
+    });
     history.replaceState(null, '', `#${slug}`);
   };
   tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab!)));
   const h = location.hash.slice(1);
   if (h && document.querySelector(`[data-panel="${h}"]`)) show(h);
   document.querySelectorAll<HTMLElement>('tr[data-team]').forEach((tr) => tr.classList.toggle('fav', favs.has(tr.dataset.team!)));
+
+  // Tableau final : Équipe favorite et chemins qu'elle peut emprunter mis en valeur.
+  document.querySelectorAll<Element>('[data-tf] [data-teams]').forEach((el) =>
+    el.classList.toggle('fav', (el.getAttribute('data-teams') ?? '').split(' ').some((id) => favs.has(id))),
+  );
+  // Animation jouée quand le Tableau final arrive à l'écran (une fois par affichage de l'onglet).
+  const tfs = document.querySelectorAll<HTMLElement>('[data-tf]');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting && !e.target.classList.contains('play')) e.target.classList.add('play');
+    }, { threshold: 0.25 });
+    tfs.forEach((tf) => {
+      tf.classList.add('armed');
+      io.observe(tf);
+    });
+  }
 
   // Explications : les illustrations s'animent à chaque ouverture.
   document.querySelectorAll<HTMLDetailsElement>('details.explain').forEach((d) =>
