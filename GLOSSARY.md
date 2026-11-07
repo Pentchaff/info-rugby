@@ -22,6 +22,12 @@ _Avoid_: Live, score en direct
 La composition des deux équipes pour un Match (titulaires, remplaçants) et les marqueurs de points.
 _Avoid_: Lineup, compo, line-up
 
+### Classements
+
+**Phase finale**:
+Les Matchs à élimination directe qui suivent la saison régulière d'une Compétition (barrages, huitièmes, quarts, demi-finales, finale), dont les affiches dépendent des places au classement.
+_Avoid_: Playoffs, phases éliminatoires
+
 ### Où regarder
 
 **Diffuseur**:
