@@ -19,7 +19,6 @@ Issu de la session de grilling du 5 novembre 2026. Le vocabulaire (mots en **gra
 
 ### Exclu de la V1
 
-- Scores en direct
 - Rappels, notifications push, abonnements calendrier (.ics)
 - Mode anti-spoiler
 - Pro D2 (absente d'ESPN ; pas de source gratuite fiable)
@@ -139,6 +138,14 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
   - création de la clé dans Google AI Studio ;
   - recommandation de la restreindre au domaine `pentchaff.github.io` et à l'API Gemini (Generative Language API).
 - Sans clé, l'app reste complète. Seuls les Diffuseurs sont moins précis (Règle de diffusion).
+
+### Score en direct (voir ADR 0004)
+
+- Sur les cartes de match (accueil, calendrier, frise des journées) et la page du match : score, temps de jeu (« 52' », « Mi-temps ») et badge « En cours ».
+- Le navigateur interroge ESPN toutes les 30 s, seulement si un Match est en cours ou commence dans le quart d'heure, et seulement quand la page est à l'écran.
+- À la fin du Match, le score passe en « Terminé » ; la collecte suivante le confirme comme Score final.
+- Si ESPN ne répond pas : dernier score gardé, mention discrète « Direct indisponible ».
+- Plus tard : classement en direct. Exclu : notifications, Feuille de match en direct.
 
 ### Classements
 

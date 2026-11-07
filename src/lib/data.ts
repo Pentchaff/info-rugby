@@ -95,6 +95,15 @@ export const meta: Meta = read<Meta>(DATA, 'meta.json', {
   lastRun: null,
 });
 
+/** Identifiant de ligue ESPN d'une compétition (configuré, ou découvert par la collecte). */
+export const espnLeague = (slug: string) => competitionBySlug.get(slug)?.espnId || meta.leagues[slug]?.espnId || '';
+
+/** Attributs du Score en direct (ADR 0004) pour un match à venir ou en cours ; rien sinon. */
+export const liveAttrs = (m: Match) =>
+  (m.status === 'scheduled' || m.status === 'live') && espnLeague(m.competition)
+    ? { 'data-live-id': m.id, 'data-live-league': espnLeague(m.competition), 'data-live-date': m.date, 'data-live-status': m.status }
+    : {};
+
 export const matchById = new Map(matches.map((m) => [m.id, m]));
 export const competitionBySlug = new Map(competitions.map((c) => [c.slug, c]));
 

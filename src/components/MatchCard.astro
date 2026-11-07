@@ -1,7 +1,7 @@
 ---
 import type { Match } from '../lib/types';
 import TeamLogo from './TeamLogo.astro';
-import { competitionBySlug, dayShortParis, diffusion, matchUrl, team, timeParis } from '../lib/data';
+import { competitionBySlug, dayShortParis, diffusion, liveAttrs, matchUrl, team, timeParis } from '../lib/data';
 import { inStandings, currentRank, ord } from '../lib/stakes';
 
 interface Props { match: Match; showDate?: boolean; showCompetition?: boolean }
@@ -11,13 +11,14 @@ const away = team(m.away.teamId);
 const d = diffusion(m);
 const comp = competitionBySlug.get(m.competition);
 const final = m.status === 'final';
+const upcoming = m.status === 'scheduled' || m.status === 'live'; // Score en direct possible
 const showRanks = m.status === 'scheduled' && inStandings(m);
 const rH = showRanks ? currentRank(m.competition, m.home.teamId) : null;
 const rA = showRanks ? currentRank(m.competition, m.away.teamId) : null;
 const winner = final && m.home.score !== null && m.away.score !== null
   ? (m.home.score > m.away.score ? 'home' : m.away.score > m.home.score ? 'away' : null) : null;
 ---
-<a href={matchUrl(m.id)} class="match card" data-match-id={m.id} data-teams={`${m.home.teamId} ${m.away.teamId}`} data-comp={m.competition} data-date={m.date}>
+<a href={matchUrl(m.id)} class="match card" data-match-id={m.id} data-teams={`${m.home.teamId} ${m.away.teamId}`} data-comp={m.competition} data-date={m.date} {...liveAttrs(m)}>
   <div class="meta">
     {showCompetition && <span class="badge">{comp?.name}</span>}
     {m.round && <span class="muted small">{m.round}</span>}
@@ -27,18 +28,22 @@ const winner = final && m.home.score !== null && m.away.score !== null
       <div class:list={['t', winner === 'home' && 'win', winner === 'away' && 'lose']}>
         <TeamLogo team={home} /><span class="name">{home.name}{rH && <span class="rank"> {ord(rH)}</span>}</span>
         {final && <span class="score">{m.home.score}</span>}
+        {upcoming && <span class:list={['score', m.status !== 'live' && 'lv-only']} data-live-score="home">{m.home.score ?? 0}</span>}
       </div>
       <div class:list={['t', winner === 'away' && 'win', winner === 'home' && 'lose']}>
         <TeamLogo team={away} /><span class="name">{away.name}{rA && <span class="rank"> {ord(rA)}</span>}</span>
         {final && <span class="score">{m.away.score}</span>}
+        {upcoming && <span class:list={['score', m.status !== 'live' && 'lv-only']} data-live-score="away">{m.away.score ?? 0}</span>}
       </div>
     </div>
     <div class="when">
       {m.status === 'final' && <span class="state">Terminé</span>}
-      {m.status === 'live' && <span class="state live">En cours</span>}
+      {m.status === 'live' && <span class="state live" data-live-clock>En cours</span>}
+      {m.status === 'scheduled' && <span class="state live lv-only" data-live-clock>En cours</span>}
       {m.status === 'postponed' && <span class="state">Reporté</span>}
       {m.status === 'canceled' && <span class="state">Annulé</span>}
-      {m.status === 'scheduled' && <span class="time">{timeParis(m.date)}</span>}
+      {m.status === 'scheduled' && <span class="time lv-hide">{timeParis(m.date)}</span>}
+      {upcoming && <span class="lv-err">Direct indisponible</span>}
       {(showDate || final) && <span class="muted small">{dayShortParis(m.date)}</span>}
     </div>
   </div>

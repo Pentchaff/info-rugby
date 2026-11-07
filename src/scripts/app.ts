@@ -1,4 +1,5 @@
 import { applyCachedBroadcasters } from './gemini';
+import { startLive } from './live';
 
 // « mis à jour il y a X min »
 const upd = document.querySelector<HTMLElement>('[data-updated]');
@@ -10,6 +11,7 @@ if (upd?.dataset.updated) {
 }
 
 applyCachedBroadcasters();
+startLive();
 
 if ('serviceWorker' in navigator) {
   const base = document.body.dataset.base ?? '/';

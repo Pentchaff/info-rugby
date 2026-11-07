@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import TeamLogo from '../../components/TeamLogo.astro';
-import { competitionBySlug, dayParis, matchById, diffusion, matches, playerUrl, players, positionFr, standings, team, teamUrl, timeParis, url } from '../../lib/data';
+import { competitionBySlug, dayParis, matchById, diffusion, matches, playerUrl, players, positionFr, standings, team, teamUrl, timeParis, url, liveAttrs } from '../../lib/data';
 import StakesTable from '../../components/StakesTable.astro';
 import { currentRank, groupFor, ord } from '../../lib/stakes';
 import type { LineupEntry, Match } from '../../lib/types';
@@ -31,15 +31,20 @@ const rankIn = (id: string) => (comp?.groups?.length ? groupFor(m.competition, i
 ---
 <Layout title={`${home.name} - ${away.name}`}>
   <p class="badge">{comp?.name}{m.round ? ` · ${m.round}` : ''}</p>
-  <section class="card pad head">
+  <section class="card pad head" {...liveAttrs(m)}>
     <a href={teamUrl(home.id)} class="side"><TeamLogo team={home} size="lg" /><strong>{home.name}</strong>{rankH && <span class="muted small">{ord(rankH)} {rankIn(home.id)}</span>}</a>
     <div class="center">
       {final || m.status === 'live'
-        ? <div class="big">{m.home.score ?? '–'} <span class="muted">-</span> {m.away.score ?? '–'}</div>
-        : <div class="big">{timeParis(m.date)}</div>}
+        ? <div class="big"><span data-live-score="home">{m.home.score ?? '–'}</span> <span class="muted">-</span> <span data-live-score="away">{m.away.score ?? '–'}</span></div>
+        : <>
+            <div class="big lv-hide">{timeParis(m.date)}</div>
+            <div class="big lv-only"><span data-live-score="home">0</span> <span class="muted">-</span> <span data-live-score="away">0</span></div>
+          </>}
       <div class="muted small">{dayParis(m.date)}</div>
       {final && <div class="state">Terminé</div>}
-      {m.status === 'live' && <div class="state live">En cours</div>}
+      {m.status === 'live' && <div class="state live" data-live-clock>En cours</div>}
+      {m.status === 'scheduled' && <div class="state live lv-only" data-live-clock>En cours</div>}
+      {(m.status === 'scheduled' || m.status === 'live') && <div class="lv-err">Direct indisponible</div>}
       {m.status === 'postponed' && <div class="state">Reporté</div>}
       {m.status === 'canceled' && <div class="state">Annulé</div>}
     </div>

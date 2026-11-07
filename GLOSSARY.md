@@ -15,8 +15,12 @@ Une rencontre entre deux équipes dans le cadre d'une Compétition, avec un coup
 _Avoid_: Rencontre, partie, game, fixture
 
 **Score final**:
-Le résultat d'un Match une fois celui-ci terminé. L'app ne suit pas les scores en direct.
-_Avoid_: Live, score en direct
+Le résultat d'un Match une fois celui-ci terminé, confirmé par la collecte de données.
+_Avoid_: Résultat
+
+**Score en direct**:
+Le score d'un Match en cours, avec le temps de jeu, mis à jour pendant que la page est ouverte ; il devient le Score final à la fin du Match.
+_Avoid_: Live, score live
 
 **Feuille de match**:
 La composition des deux équipes pour un Match (titulaires, remplaçants) et les marqueurs de points.

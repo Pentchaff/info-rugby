@@ -109,3 +109,10 @@ tr:last-child td { border-bottom: 0; }
 .scroll-x { overflow-x: auto; }
 details > summary { cursor: pointer; font-weight: 600; }
 [hidden] { display: none !important; }
+
+/* Score en direct (src/scripts/live.ts) : éléments affichés seulement pendant / après un match suivi en direct. */
+.lv-only, .lv-err { display: none !important; }
+.live-in .lv-only, .live-post .lv-only { display: revert !important; }
+.live-in .lv-hide, .live-post .lv-hide { display: none !important; }
+.live-stale .lv-err { display: block !important; font-size: .7rem; color: var(--muted); }
+.live-post [data-live-clock] { color: var(--muted) !important; }

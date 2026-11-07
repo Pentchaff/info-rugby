@@ -1,7 +1,7 @@
 ---
 // Avancement de la Compétition : « Journée 4 sur 6 », frise animée des journées, et matchs prévus de la journée choisie.
 import TeamLogo from './TeamLogo.astro';
-import { matchUrl, team, timeParis } from '../lib/data';
+import { liveAttrs, matchUrl, team, timeParis } from '../lib/data';
 import { hasTableauFinal } from '../lib/finals';
 import { progressFor } from '../lib/journees';
 import type { StandingGroup } from '../lib/types';
@@ -65,9 +65,16 @@ const stateLabel = { done: 'jouée', live: 'en cours', next: 'prochaine', todo: 
             {j.matches.map((m, k) => {
               const done = m.status === 'final';
               return (
-                <a class:list={['mm', done && 'done']} href={matchUrl(m.id)} data-teams={`${m.home.teamId} ${m.away.teamId}`} style={`--k:${k}`}>
+                <a class:list={['mm', done && 'done']} href={matchUrl(m.id)} data-teams={`${m.home.teamId} ${m.away.teamId}`} style={`--k:${k}`} {...liveAttrs(m)}>
                   <span class="side"><TeamLogo team={team(m.home.teamId)} /><span class="c">{team(m.home.teamId).short}</span></span>
-                  <span class="mid">{done ? <strong>{m.home.score}–{m.away.score}</strong> : <span>{fWd.format(new Date(m.date))}<br />{kickoff(m.date)}</span>}</span>
+                  <span class="mid">
+                    {done ? <strong>{m.home.score}–{m.away.score}</strong> : (
+                      <>
+                        <span class="lv-hide">{fWd.format(new Date(m.date))}<br />{kickoff(m.date)}</span>
+                        <span class="lv-only"><strong class="lvs"><span data-live-score="home">0</span>–<span data-live-score="away">0</span></strong><br /><span class="lvc" data-live-clock="short">En cours</span></span>
+                      </>
+                    )}
+                  </span>
                   <span class="side r"><span class="c">{team(m.away.teamId).short}</span><TeamLogo team={team(m.away.teamId)} /></span>
                 </a>
               );
@@ -108,6 +115,8 @@ const stateLabel = { done: 'jouée', live: 'en cours', next: 'prochaine', todo: 
   .c { font-size: .76rem; font-weight: 700; }
   .mid { font-size: .66rem; color: var(--muted); text-align: center; line-height: 1.15; white-space: nowrap; }
   .mm.done .mid { font-size: .8rem; color: var(--text); }
+  .lvs { font-size: .8rem; color: var(--text); }
+  .lvc { color: var(--live); font-weight: 700; }
 
   /* Animation : la frise se remplit case par case, la journée en cours pulse, les matchs arrivent. */
   @media (prefers-reduced-motion: no-preference) {
