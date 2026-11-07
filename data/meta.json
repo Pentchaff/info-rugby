@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-07T20:13:42.451Z",
+  "updatedAt": "2026-11-07T20:29:22.739Z",
   "lastFullAt": "2026-11-07T20:13:42.451Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
@@ -54,9 +54,9 @@
   },
   "errors": [],
   "lastRun": {
-    "mode": "full",
-    "at": "2026-11-07T20:13:42.451Z",
-    "durationSec": 22
+    "mode": "light",
+    "at": "2026-11-07T20:29:22.739Z",
+    "durationSec": 1
   },
   "doneDays": {
     "top14": [
