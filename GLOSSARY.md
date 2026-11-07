@@ -28,6 +28,10 @@ _Avoid_: Lineup, compo, line-up
 Les Matchs à élimination directe qui suivent la saison régulière d'une Compétition (barrages, huitièmes, quarts, demi-finales, finale), dont les affiches dépendent des places au classement.
 _Avoid_: Playoffs, phases éliminatoires
 
+**Tableau final**:
+Le tableau de la Phase finale tel qu'il serait si la saison régulière s'arrêtait aujourd'hui, rempli d'après les places actuelles au classement ; une projection, pas un pronostic.
+_Avoid_: Arbre, bracket, tableau de progression
+
 ### Où regarder
 
 **Diffuseur**:
