@@ -1,4 +1,5 @@
 // Tableau final : la Phase finale telle qu'elle serait si la saison régulière s'arrêtait aujourd'hui.
+import { competitionBySlug } from './data';
 import type { StandingGroup } from './types';
 
 export type BracketNode =
@@ -25,6 +26,12 @@ export function teamsOf(n: BracketNode): string[] {
 function started(groups: StandingGroup[]): boolean {
   const rows = groups.flatMap((g) => g.rows);
   return rows.length > 0 && rows.every((r) => (r.played ?? 0) > 0);
+}
+
+/** Vrai si un Tableau final est affiché pour cette compétition (arbre, ou Nord contre Sud). */
+export function hasTableauFinal(slug: string, groups: StandingGroup[]): boolean {
+  if (bracketFor(slug, groups)) return true;
+  return (competitionBySlug.get(slug)?.groups?.length ?? 0) === 2 && groups.length === 2 && started(groups);
 }
 
 export function bracketFor(slug: string, groups: StandingGroup[]): Bracket | null {

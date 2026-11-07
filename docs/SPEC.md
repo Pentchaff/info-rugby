@@ -143,6 +143,7 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 ### Classements
 
 - Un classement par Compétition (avec les poules quand il y en a), zones colorées (qualification, accession, relégation). Nations Championship : deux classements, hémisphère Nord et hémisphère Sud.
+- Avancement au-dessus du classement : « Journée 4 sur 6 · en cours » (total = matchs joués + matchs encore au calendrier), frise animée des Journées (jouées, en cours, à venir, puis Phases finales menant au Tableau final). Toucher une Journée affiche ses matchs prévus au calendrier (logos, jour, heure ou « à fixer », score si joué) ; par défaut la Journée en cours ou la prochaine (`src/lib/journees.ts`).
 - Tableau final sous le classement (Top 14, Champions Cup, Nations Championship) : la Phase finale si la saison régulière s'arrêtait aujourd'hui, avec les logos, animé à son arrivée à l'écran ; l'Équipe favorite et son chemin sont mis en valeur. Affiché dès que chaque équipe a joué. Projection seulement : le vrai tableau avec les scores viendra plus tard (`src/lib/finals.ts`).
 - « Comment marche ce classement ? » : barème des points, bonus offensif et défensif, ce que donne chaque place, règles d'égalité (`src/lib/rules.ts`).
 - « Et si… ? » : simulateur de la prochaine journée. On choisit le résultat de chaque match, le classement projeté se recalcule (variations de places).

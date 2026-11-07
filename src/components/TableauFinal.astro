@@ -53,7 +53,7 @@ const connectors = laid
 const show = !!bracket || cross.length > 0;
 ---
 {show && (
-  <section class="tf" data-tf>
+  <section class="tf" id={`tf-${slug}`} data-tf data-anim>
     <h2>Tableau final</h2>
     <p class="muted small">Les phases finales si la saison régulière s'arrêtait aujourd'hui : une projection d'après le classement, pas un pronostic.</p>
 

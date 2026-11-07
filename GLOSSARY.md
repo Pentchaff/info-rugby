@@ -24,6 +24,10 @@ _Avoid_: Lineup, compo, line-up
 
 ### Classements
 
+**Journée**:
+Un tour de la saison régulière d'une Compétition, pendant lequel chaque équipe joue en principe un Match ; numérotée de 1 au nombre total de journées.
+_Avoid_: Round, tour, semaine
+
 **Phase finale**:
 Les Matchs à élimination directe qui suivent la saison régulière d'une Compétition (barrages, huitièmes, quarts, demi-finales, finale), dont les affiches dépendent des places au classement.
 _Avoid_: Playoffs, phases éliminatoires
