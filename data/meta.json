@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-08T01:18:07.274Z",
-  "lastFullAt": "2026-11-07T20:13:42.451Z",
+  "updatedAt": "2026-11-08T07:15:04.604Z",
+  "lastFullAt": "2026-11-08T07:15:04.604Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
     "end": "2027-07-31T23:59:00.000Z",
@@ -55,12 +55,13 @@
   "errors": [
     "YouTube @SixNationsRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCL5bAcVfbxSAs-UM5f5ncWg",
     "YouTube @WorldRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCE28rwYoaV7jvU6GVzdu_GQ",
-    "YouTube @FranceRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCnH0bSmQqDBfNj9kZzCaINw"
+    "YouTube @FranceRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCnH0bSmQqDBfNj9kZzCaINw",
+    "YouTube @CanalplusSport: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UC8ggH3zU61XO0nMskSQwZdA"
   ],
   "lastRun": {
-    "mode": "light",
-    "at": "2026-11-08T01:18:07.274Z",
-    "durationSec": 61
+    "mode": "full",
+    "at": "2026-11-08T07:15:04.604Z",
+    "durationSec": 86
   },
   "doneDays": {
     "top14": [
@@ -155,7 +156,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "champions-cup": [
       "20260801",
@@ -253,7 +255,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "challenge-cup": [
       "20260801",
@@ -351,7 +354,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "six-nations": [
       "20260801",
@@ -449,7 +453,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "nations-championship": [
       "20260801",
@@ -547,7 +552,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "tests": [
       "20260801",
@@ -645,7 +651,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "rugby-championship": [
       "20260801",
@@ -743,7 +750,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ],
     "coupe-du-monde": [
       "20260801",
@@ -841,7 +849,8 @@
       "20261101",
       "20261102",
       "20261103",
-      "20261104"
+      "20261104",
+      "20261105"
     ]
   },
   "lastFarAt": "2026-11-07T20:13:42.451Z"
