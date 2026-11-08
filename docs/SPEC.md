@@ -97,8 +97,7 @@ L'app affiche le Diffuseur et sa provenance (corrigé, trouvé avec sources, ou 
 ### Accueil
 
 - « Mes matchs » en tête (prochains Matchs et derniers Scores finaux des Équipes favorites), si des favoris sont définis.
-- Prochains Matchs (date, heure, Compétition, Diffuseur).
-- Derniers Scores finaux.
+- Deux onglets en haut : « À venir » (prochains Matchs : date, heure, Compétition, Diffuseur) et « Résultats » (Scores finaux des 8 derniers jours, groupés par jour, avec leur nombre). Lien direct : `#resultats`.
 
 ### Calendrier
 

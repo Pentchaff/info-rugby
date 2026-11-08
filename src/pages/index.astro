@@ -52,6 +52,12 @@ const gemini = upcomingAll
 
   <p class="muted small" id="gemini-status" hidden></p>
 
+  <div class="chips home-tabs" role="tablist">
+    <button class="chip active" type="button" role="tab" data-home-tab="a-venir" aria-selected="true">À venir</button>
+    <button class="chip" type="button" role="tab" data-home-tab="resultats" aria-selected="false">Résultats{results.length > 0 && <span class="count">{results.length}</span>}</button>
+  </div>
+
+  <section data-home-panel="a-venir">
   <h2>Prochains matchs</h2>
   {upcoming.length === 0 && <p class="empty card">Aucun match programmé pour le moment.</p>}
   {byDay(upcoming).map((g) => (
@@ -61,9 +67,18 @@ const gemini = upcomingAll
     </>
   ))}
 
+  </section>
+
+  <section data-home-panel="resultats" hidden>
   <h2>Derniers résultats</h2>
   {results.length === 0 && <p class="empty card">Pas de résultat récent.</p>}
-  <div class="stack">{results.map((m) => <MatchCard match={m} />)}</div>
+  {byDay(results).map((g) => (
+    <>
+      <h3>{g.label}</h3>
+      <div class="stack">{g.items.map((m) => <MatchCard match={m} />)}</div>
+    </>
+  ))}
+  </section>
 
   <p class="small"><a class="link" href={url('calendrier/')}>Voir tout le calendrier →</a></p>
 
@@ -86,12 +101,27 @@ const gemini = upcomingAll
     const cards = [...tpl.content.querySelectorAll<HTMLElement>('[data-teams]')].filter((c) =>
       c.dataset.teams!.split(' ').some((t) => favs.has(t)),
     );
-    const upcoming = cards.filter((c) => !c.querySelector('.score')).slice(0, 6);
-    const recent = cards.filter((c) => c.querySelector('.score')).sort((a, b) => b.dataset.date!.localeCompare(a.dataset.date!)).slice(0, 3);
+    // Match terminé = pas de Score en direct possible (les cartes à venir ont un score caché pour le direct).
+    const done = (c: HTMLElement) => !c.hasAttribute('data-live-id') && !!c.querySelector('.score');
+    const upcoming = cards.filter((c) => !done(c)).slice(0, 6);
+    const recent = cards.filter(done).sort((a, b) => b.dataset.date!.localeCompare(a.dataset.date!)).slice(0, 3);
     for (const c of [...upcoming, ...recent]) list.appendChild(c);
     document.getElementById('mes-matchs-empty')!.hidden = upcoming.length + recent.length > 0;
     section.hidden = false;
   }
+
+  // Onglets « À venir » / « Résultats » (lien direct : #resultats).
+  const tabs = document.querySelectorAll<HTMLButtonElement>('[data-home-tab]');
+  const showTab = (id: string) => {
+    tabs.forEach((t) => {
+      t.classList.toggle('active', t.dataset.homeTab === id);
+      t.setAttribute('aria-selected', String(t.dataset.homeTab === id));
+    });
+    document.querySelectorAll<HTMLElement>('[data-home-panel]').forEach((p) => (p.hidden = p.dataset.homePanel !== id));
+    history.replaceState(null, '', id === 'a-venir' ? location.pathname : `#${id}`);
+  };
+  tabs.forEach((t) => t.addEventListener('click', () => showTab(t.dataset.homeTab!)));
+  if (location.hash === '#resultats') showTab('resultats');
 
   applyCachedBroadcasters();
 
@@ -112,3 +142,9 @@ const gemini = upcomingAll
       });
   }
 </script>
+
+<style>
+  .home-tabs { margin-top: 14px; }
+  .count { margin-left: 6px; font-size: .72rem; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .chip.active .count { background: color-mix(in srgb, var(--accent-contrast) 25%, transparent); color: inherit; }
+</style>
