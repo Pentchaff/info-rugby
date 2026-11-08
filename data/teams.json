@@ -13,7 +13,7 @@
 "167124":{"id":"167124","espnName":"Zebre","name":"Zebre","short":"ZEB","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/167124.png","logoCheckedAt":"2026-11-06T22:18:29.528Z","national":false,"competitions":["challenge-cup"]},
 "2":{"id":"2","espnName":"Scotland","name":"Écosse","short":"SCO","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/2.png","national":true,"competitions":["nations-championship","six-nations"]},
 "20":{"id":"20","espnName":"Italy","name":"Italie","short":"ITA","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/20.png","national":true,"competitions":["nations-championship","six-nations"]},
-"23":{"id":"23","espnName":"Japan","name":"Japon","short":"JAP","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/23.png","national":true,"competitions":["coupe-du-monde","nations-championship","tests"]},
+"23":{"id":"23","espnName":"Japan","name":"Japon","short":"JPN","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/23.png","national":true,"competitions":["coupe-du-monde","nations-championship","tests"]},
 "25":{"id":"25","espnName":"Canada","name":"Canada","short":"CAN","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/25.png","national":true,"competitions":["tests"]},
 "25898":{"id":"25898","espnName":"Bath Rugby","name":"Bath","short":"BAT","logo":"https://a.espncdn.com/i/teamlogos/rugby/teams/500/25898.png","logoCheckedAt":"2026-11-06T22:18:29.528Z","national":false,"competitions":["champions-cup"]},
 "25899":{"id":"25899","espnName":"Bristol Rugby","name":"Bristol Rugby","short":"BRI","logo":null,"logoCheckedAt":"2026-11-07T20:13:42.451Z","national":false,"competitions":["champions-cup"]},
