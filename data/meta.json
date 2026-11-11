@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-11T02:57:52.065Z",
-  "lastFullAt": "2026-11-11T02:57:52.065Z",
+  "updatedAt": "2026-11-11T10:42:36.039Z",
+  "lastFullAt": "2026-11-11T10:42:36.039Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
     "end": "2027-07-31T23:59:00.000Z",
@@ -52,13 +52,11 @@
     "@CanalplusSport": "UC8ggH3zU61XO0nMskSQwZdA",
     "@LNRofficiel": "UCbFKMZb7vDQ4wl6UIqq4DNw"
   },
-  "errors": [
-    "YouTube @CanalplusSport: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UC8ggH3zU61XO0nMskSQwZdA"
-  ],
+  "errors": [],
   "lastRun": {
     "mode": "full",
-    "at": "2026-11-11T02:57:52.065Z",
-    "durationSec": 35
+    "at": "2026-11-11T10:42:36.039Z",
+    "durationSec": 8
   },
   "doneDays": {
     "top14": [
