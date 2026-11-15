@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-15T07:46:27.470Z",
-  "lastFullAt": "2026-11-15T07:46:27.470Z",
+  "updatedAt": "2026-11-15T14:59:54.402Z",
+  "lastFullAt": "2026-11-15T14:59:54.402Z",
   "season": {
     "start": "2026-08-01T00:00:00.000Z",
     "end": "2027-07-31T23:59:00.000Z",
@@ -52,15 +52,11 @@
     "@CanalplusSport": "UC8ggH3zU61XO0nMskSQwZdA",
     "@LNRofficiel": "UCbFKMZb7vDQ4wl6UIqq4DNw"
   },
-  "errors": [
-    "YouTube @SixNationsRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCL5bAcVfbxSAs-UM5f5ncWg",
-    "YouTube @WorldRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCE28rwYoaV7jvU6GVzdu_GQ",
-    "YouTube @FranceRugby: HTTP 404 https://www.youtube.com/feeds/videos.xml?channel_id=UCnH0bSmQqDBfNj9kZzCaINw"
-  ],
+  "errors": [],
   "lastRun": {
     "mode": "full",
-    "at": "2026-11-15T07:46:27.470Z",
-    "durationSec": 61
+    "at": "2026-11-15T14:59:54.402Z",
+    "durationSec": 36
   },
   "doneDays": {
     "top14": [
@@ -907,5 +903,5 @@
       "20261112"
     ]
   },
-  "lastFarAt": "2026-11-14T16:38:33.890Z"
+  "lastFarAt": "2026-11-15T14:59:54.402Z"
 }
